@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{url_for('static', filename = 'css/index.css')}}">
+<script src="{{url_for('static', filename = 'js/index.js')}}"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="starter-template">
+        <h1>Spreadsheet Template Generator</h1>
+        <p class="lead">Upload a YAML file or import all schemas</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert {{category}}">
+                       {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="grid-container">
+            <!--<div class="grid-item">-->
+                <!--<form  action="upload" method="POST" enctype="multipart/form-data">-->
+                    <!--<div class="form-group">-->
+                        <!--<label for="exampleInputFile">Please upload your YAML file</label>-->
+                        <!--<input type="file" name="file" class="form-control-file"  id="exampleInputFile" accept=".yaml"   aria-describedby="fileHelp">-->
+                    <!--</div>-->
+                    <!--<button type="submit" class="btn btn-primary">Submit</button>-->
+                <!--</form>-->
+            <!--</div>-->
+            <div class="grid-item">
+               <form  action="load" method="GET" enctype="multipart/form-data">
+                    <div class="form-group">
+                         <label for="allSchemas">Load all schemas</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="allSchemas">All schemas</button>
+               </form>
+            </div>
+        </div>
+        <hr/>
+    </div>
+</div>
+
+
+{% endblock %}

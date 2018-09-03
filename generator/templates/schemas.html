@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{url_for('static', filename = 'css/schemas.css')}}">
+<script src="{{url_for('static', filename = 'js/index.js')}}"></script>
+<script src="{{url_for('static', filename = 'js/collapsible.js')}}"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="starter-template">
+        <h1>Spreadsheet Template Generator</h1>
+        <!--<div class="grid-container">-->
+            <!--<div class="grid-item">-->
+               <form  action="generate" method="POST" enctype="multipart/form-data">
+                    <p class="lead">Select the schemas and properties you need</p>
+
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert {{category}}">
+                                       {{ message }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <div>
+                            {% for schema in schemas %}
+                                {% include 'schema_properties.html' %}
+                            {% endfor %}
+                        </div>
+                        <hr/>
+                    <div class="form-group">
+                         <label for="generateYaml">Generate YAML file</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="generateYaml">Generate</button>
+               </form>
+            <!--</div>-->
+        <!--</div>-->
+        <hr/>
+    </div>
+</div>
+
+
+{% endblock %}
