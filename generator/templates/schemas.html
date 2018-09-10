@@ -4,6 +4,7 @@
 <link rel="stylesheet" href="{{url_for('static', filename = 'css/schemas.css')}}">
 <script src="{{url_for('static', filename = 'js/index.js')}}"></script>
 <script src="{{url_for('static', filename = 'js/collapsible.js')}}"></script>
+<script src="{{url_for('static', filename = 'js/schemas.js')}}"></script>
 {% endblock %}
 
 {% block content %}
@@ -27,6 +28,11 @@
                         {% endwith %}
 
                         <div>
+                            <button type="button" class="btn btn-primary" id="expandAll">Expand all sections</button>
+                            <button type="button" class="btn btn-primary" id="selectAll">Select all properties</button>
+                        </div>
+                        <hr/>
+                        <div id="data-items">
                             {% for schema in schemas %}
                                 {% include 'schema_properties.html' %}
                             {% endfor %}
