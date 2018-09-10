@@ -1,13 +1,13 @@
-<ul style="list-style-type:none">
-    <li>
-        <!--<button class="collapsible">{{ schema['title'] }}</button>-->
-        <!--<div class="content">-->
+<!--<ul style="list-style-type:none">-->
+    <!--<li>-->
+        <button type="button" class="collapsible">{{ schema['title'] }}</button>
+        <div class="content">
             <input type="checkbox" name="schema" value="{{ schema['name'] }}">{{ schema['title'] }}<br>
             <ul style="list-style-type:none">
                  {% for property in schema['properties'] %}
                 <li><input type="checkbox" name="property" value="{{ property }}">{{ property }}</li>
                 {% endfor %}
             </ul>
-        <!--</div>-->
-    </li>
-</ul>
+        </div>
+    <!--</li>-->
+<!--</ul>-->

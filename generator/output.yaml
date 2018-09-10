@@ -6,10 +6,3 @@ tabs:
     - sequencing_protocol.protocol_core.protocol_description
     - sequencing_protocol.protocol_core.publication_doi
     display_name: Sequencing protocol
-- library_preparation_protocol:
-    columns:
-    - library_preparation_protocol.protocol_core.protocol_id
-    - library_preparation_protocol.protocol_core.protocol_name
-    - library_preparation_protocol.protocol_core.protocol_description
-    - library_preparation_protocol.protocol_core.publication_doi
-    display_name: Library preparation protocol
