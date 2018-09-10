@@ -1,12 +1,20 @@
 $(document).ready(function() {
 
-    $('#selectAll').click(function() {
+     $('#selectAll').click(function() {
         selectAll();
      });
 
       $('#expandAll').click(function() {
         expandAll();
      });
+
+     $('.selectLocal').click(function() {
+        selectLocal($(this).prop("id"));
+     })
+
+      $('.unselectLocal').click(function() {
+        selectLocal($(this).prop("id"));
+     })
 });
 
 function selectAll(){
@@ -44,16 +52,18 @@ function expandAll(){
     else{
       $('#expandAll').empty().text("Expand all sections");
     }
+}
 
+function selectLocal(element){
+    var type = element.split(":")[0]
+    var schema = element.split(":")[1]
 
-
-//     $('#data-items .collapsible').each(function(){
-//        $(this).classList.toggle("active");
-//        var content = $(this).nextElementSibling;
-//        if (content.style.maxHeight){
-//          content.style.maxHeight = null;
-//        } else {
-//          content.style.maxHeight = content.scrollHeight + "px";
-//        }
-//    })
+    $('#'+ schema + ' input[type=checkbox]').each(function(){
+        if (type == 'select'){
+            $(this).prop('checked', true)
+        }
+        else{
+            $(this).prop('checked', false)
+        }
+    });
 }

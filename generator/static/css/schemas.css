@@ -47,3 +47,24 @@ input {
   transition: max-height 0.2s ease-out;
   background-color: #f1f1f1;
 }
+
+/*.column {
+    float: left;
+    width: 50%;
+}*/
+
+/* Clear floats after the columns */
+/*.row:after {
+    content: "";
+    display: table;
+    clear: both;
+}*/
+
+.row {
+    display: flex;
+    margin: 0;
+}
+
+.column {
+    flex: 50%;
+}

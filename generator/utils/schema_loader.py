@@ -16,17 +16,18 @@ def retrieve_latest_schemas(schemas_url, schema_env):
             schema_url = BASE_URL.replace("{schema_env}", schema_env)
 
             if schema["highLevelEntity"] and schema["highLevelEntity"] == "type":
-                schema_url = schema_url + schema["highLevelEntity"]
-                if schema["domainEntity"]:
-                    schema_url = schema_url + "/" + schema["domainEntity"]
-                if schema["subDomainEntity"] and schema["subDomainEntity"] != "":
-                    schema_url = schema_url + "/" + schema["subDomainEntity"]
-                if schema["schemaVersion"]:
-                    schema_url = schema_url + "/" + schema["schemaVersion"]
-                if schema["concreteEntity"]:
-                    schema_url = schema_url + "/" + schema["concreteEntity"]
+                if "analysis_" not in schema["concreteEntity"]:
+                    schema_url = schema_url + schema["highLevelEntity"]
+                    if schema["domainEntity"]:
+                        schema_url = schema_url + "/" + schema["domainEntity"]
+                    if schema["subDomainEntity"] and schema["subDomainEntity"] != "":
+                        schema_url = schema_url + "/" + schema["subDomainEntity"]
+                    if schema["schemaVersion"]:
+                        schema_url = schema_url + "/" + schema["schemaVersion"]
+                    if schema["concreteEntity"]:
+                        schema_url = schema_url + "/" + schema["concreteEntity"]
 
-                urls.append(schema_url)
+                    urls.append(schema_url)
 
         if "_links" in schemas and "next" in schemas["_links"]:
             more_urls = retrieve_latest_schemas(schemas["_links"]["next"]["href"], schema_env)

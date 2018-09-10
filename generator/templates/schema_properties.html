@@ -1,13 +1,28 @@
 <!--<ul style="list-style-type:none">-->
     <!--<li>-->
         <button type="button" class="collapsible">{{ schema['title'] }}</button>
-        <div class="content">
-            <input type="checkbox" name="schema" value="{{ schema['name'] }}">{{ schema['title'] }}<br>
-            <ul style="list-style-type:none">
-                 {% for property in schema['properties'] %}
-                <li><input type="checkbox" name="property" value="{{ property }}">{{ property }}</li>
-                {% endfor %}
-            </ul>
+        <div class="content row">
+            <div class="column" id="{{ schema['name'] }}">
+
+                <input type="checkbox" name="schema" value="{{ schema['name'] }}">{{ schema['title'] }}<br>
+                <ul style="list-style-type:none">
+                     {% for property in schema['properties'] %}
+                        {% if schema['properties'][property] == 'required' %}
+                    <li><input type="checkbox" name="property" value="{{ property }}" checked>{{ property }}</li>
+                        {% else %}
+                    <li><input type="checkbox" name="property" value="{{ property }}">{{ property }}</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="local_selects column">
+                <br>
+                <button type="button" class="btn btn-primary selectLocal" id="{{ 'select:' ~ schema['name'] }}">Select all properties in section</button>
+                <br>
+                <br>
+                <br>
+                <button type="button" class="btn btn-primary {{ schema['name'] }} unselectLocal" id="{{ 'unselect:' ~ schema['name'] }}">Unselect all properties in section</button>
+            </div>
         </div>
     <!--</li>-->
 <!--</ul>-->
