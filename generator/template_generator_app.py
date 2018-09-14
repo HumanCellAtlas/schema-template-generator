@@ -5,17 +5,12 @@ import os
 import tempfile
 
 import yaml
-from flask import Flask, Markup, flash, request, render_template, redirect, url_for
+from flask import Flask, Markup, flash, request, render_template, redirect, url_for, make_response
 from flask_cors import CORS, cross_origin
-from flask import json
 import logging
 
-from openpyxl.compat import file
-from yaml import dump as yaml_dump
-from yaml import load as yaml_load
 from utils import schema_loader
 from utils import properties_builder
-from werkzeug.utils import secure_filename
 import configparser
 
 
@@ -108,50 +103,52 @@ def index():
 @app.route('/generate', methods=['POST'])
 def generate_yaml():
 
-    if request.method == 'POST':
-        response = request.form
+    response = request.form
 
-        selected_schemas = []
-        if 'schema' in response:
-            selected_schemas = response.getlist('schema')
+    selected_schemas = []
+    if 'schema' in response:
+        selected_schemas = response.getlist('schema')
 
-        selected_properties = []
-        if 'property' in response:
-            selected_properties = response.getlist('property')
+    selected_properties = []
+    if 'property' in response:
+        selected_properties = response.getlist('property')
 
-        pre_yaml = []
+    pre_yaml = []
 
-        for schema in selected_schemas:
-            entry = {}
-            tab = {}
+    for schema in selected_schemas:
+        entry = {}
+        tab = {}
 
-            if schema in DISPLAY_NAME_MAP:
-                tab["display_name"] = DISPLAY_NAME_MAP[schema]
-            else:
-                tab["display_name"] = schema
-            columns = []
-            for prop in selected_properties:
-                if schema in prop:
-                    # print("Property " + prop + " belongs to schema " + schema)
-                    columns.append(prop)
-            tab["columns"] = columns
-            entry[schema] = tab
-            pre_yaml.append(entry)
+        if schema in DISPLAY_NAME_MAP:
+            tab["display_name"] = DISPLAY_NAME_MAP[schema]
+        else:
+            tab["display_name"] = schema
+        columns = []
+        for prop in selected_properties:
+            if schema in prop:
+                # print("Property " + prop + " belongs to schema " + schema)
+                columns.append(prop)
+        tab["columns"] = columns
+        entry[schema] = tab
+        pre_yaml.append(entry)
 
-        yaml_json = {}
-        yaml_json["tabs"] = pre_yaml
+    yaml_json = {}
+    yaml_json["tabs"] = pre_yaml
 
-        # print(yaml_json)
+    # print(yaml_json)
 
-        # yaml = yaml_dump(yaml_load(json.dump(yaml_json, indent=4)))
-        # stream = file('document.yaml', 'w')
-        yaml_data = yaml.dump(yaml_json, default_flow_style=False)
-        # print(yaml_data)
+    # yaml = yaml_dump(yaml_load(json.dump(yaml_json, indent=4)))
+    # stream = file('document.yaml', 'w')
+    yaml_data = yaml.dump(yaml_json, default_flow_style=False)
 
-        _save_file(yaml_data)
+    # _save_file(yaml_data)
+    # return redirect(url_for('index'))
 
-
-    return redirect(url_for('index'))
+    response = make_response(yaml_data)
+    response.headers.set('Content-Type', 'application/x-yaml')
+    response.headers.set('Content-Disposition', 'attachment',
+                         filename='output.yaml')
+    return response
 
 
 def _save_file(data):

@@ -15,6 +15,13 @@ $(document).ready(function() {
       $('.unselectLocal').click(function() {
         selectLocal($(this).prop("id"));
      })
+
+     $('input[type=checkbox]').change(function(){
+        var p = $(this).parents().find('schema');
+        console.log(p)
+        console.log(p.prop("name"));
+        console.log(p.val())
+     });
 });
 
 function selectAll(){
