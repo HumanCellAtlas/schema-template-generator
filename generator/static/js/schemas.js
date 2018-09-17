@@ -42,12 +42,13 @@ function expandAll(){
     $('#expandAll').toggleClass("expanded");
 
     for (var c = 0; c < coll.length; c++) {
-        coll[c].classList.toggle("active");
         var content = coll[c].nextElementSibling;
-        if (content.style.maxHeight){
-          content.style.maxHeight = null;
-        } else {
-          content.style.maxHeight = content.scrollHeight + "px";
+        if ($('#expandAll').hasClass('expanded') && !coll[c].classList.contains("active")){
+              content.style.maxHeight = content.scrollHeight + "px";
+              coll[c].classList.toggle("active");
+        } else if (!$('#expandAll').hasClass('expanded') && coll[c].classList.contains("active")){
+              content.style.maxHeight = null;
+              coll[c].classList.toggle("active");
         }
     }
 
