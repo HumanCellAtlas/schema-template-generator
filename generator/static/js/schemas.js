@@ -16,12 +16,11 @@ $(document).ready(function() {
         selectLocal($(this).prop("id"));
      })
 
-     $('input[type=checkbox]').change(function(){
-        var p = $(this).parents().find('schema');
-        console.log(p)
-        console.log(p.prop("name"));
-        console.log(p.val())
-     });
+     $('input.property').change(function() {
+        if ($(this).is(':checked')) {
+            $(this).closest('ul').siblings('input:checkbox').prop('checked', true);
+        }
+    });
 });
 
 function selectAll(){

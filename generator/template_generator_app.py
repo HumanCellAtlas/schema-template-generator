@@ -141,14 +141,17 @@ def generate_yaml():
     # stream = file('document.yaml', 'w')
     yaml_data = yaml.dump(yaml_json, default_flow_style=False)
 
-    # _save_file(yaml_data)
-    # return redirect(url_for('index'))
 
-    response = make_response(yaml_data)
-    response.headers.set('Content-Type', 'application/x-yaml')
-    response.headers.set('Content-Disposition', 'attachment',
-                         filename='output.yaml')
-    return response
+    # response = make_response(yaml_data)
+    # response.headers.set('Content-Type', 'application/x-yaml')
+    # response.headers.set('Content-Disposition', 'attachment',
+    #                      filename='output.yaml')
+    # return response
+
+    # TO DO switch previous section and remove below - temp setting to avoid 100s of downloads in testing
+    print(yaml_data)
+    return redirect(url_for('index'))
+
 
 
 def _save_file(data):

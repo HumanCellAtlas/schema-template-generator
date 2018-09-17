@@ -4,13 +4,13 @@
         <div class="content row">
             <div class="column" id="{{ schema['name'] }}">
 
-                <input type="checkbox" name="schema" value="{{ schema['name'] }}">{{ schema['title'] }}<br>
+                <input type="checkbox" class="schema" value="{{ schema['name'] }}">{{ schema['title'] }}<br>
                 <ul style="list-style-type:none">
                      {% for property in schema['properties'] %}
                         {% if schema['properties'][property] == 'required' %}
-                    <li><input type="checkbox" name="property" value="{{ property }}" checked>{{ property }}</li>
+                    <li><input type="checkbox" class="property" value="{{ property }}" checked>{{ property }}</li>
                         {% else %}
-                    <li><input type="checkbox" name="property" value="{{ property }}">{{ property }}</li>
+                    <li><input type="checkbox" class="property" value="{{ property }}">{{ property }}</li>
                         {% endif %}
                     {% endfor %}
                 </ul>
