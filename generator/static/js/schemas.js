@@ -114,7 +114,7 @@ function addCheckbox(event){
 
         var list = $('#'+ schema + ' ul li')
         var last = list.last()
-        var newCheckbox = $('<li>').html('<input type="checkbox" class="property" value="' + newProperty + '" checked>' + newProperty);
+        var newCheckbox = $('<li>').html('<input type="checkbox" class="property" name="property" value="' + newProperty + '" checked>' + newProperty);
 
         newCheckbox.insertBefore(last);
 
