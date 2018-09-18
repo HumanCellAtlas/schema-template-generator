@@ -13,15 +13,18 @@
                     <li><input type="checkbox" class="property" value="{{ property }}">{{ property }}</li>
                         {% endif %}
                     {% endfor %}
+                    <li><input type="button" class="btn btn-sml {{ schema['name'] }} addProperty" id="{{ 'addProperty:' ~ schema['name'] }}" value="Add property"></li>
                 </ul>
             </div>
-            <div class="local_selects column">
-                <br>
-                <button type="button" class="btn btn-primary selectLocal" id="{{ 'select:' ~ schema['name'] }}">Select all properties in section</button>
-                <br>
-                <br>
-                <br>
-                <button type="button" class="btn btn-primary {{ schema['name'] }} unselectLocal" id="{{ 'unselect:' ~ schema['name'] }}">Unselect all properties in section</button>
+            <div class="column local_selects">
+                <!--<div class="local_selects">-->
+                    <br>
+                    <button type="button" class="btn btn-primary selectLocal" id="{{ 'select:' ~ schema['name'] }}">Select all properties in section</button>
+                    <br>
+                    <br>
+                    <br>
+                    <button type="button" class="btn btn-primary {{ schema['name'] }} unselectLocal" id="{{ 'unselect:' ~ schema['name'] }}">Unselect all properties in section</button>
+                <!--</div>-->
             </div>
         </div>
     <!--</li>-->
