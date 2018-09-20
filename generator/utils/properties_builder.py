@@ -7,8 +7,23 @@ EXCLUDED_PROPERTIES = ["describedBy", "schema_version", "schema_type", "provenan
 def extract_properties(schema):
     title = schema["title"]
 
+    schema_id = ''
+    if "$id" in schema:
+        schema_id = schema["$id"]
+    elif "id" in schema:
+        schema_id = schema["id"]
+
+    schema_type = ''
+
+    if "type" in schema_id:
+        schema_type = "type"
+    elif "core" in schema_id:
+        schema_type = "core"
+    elif "module" in schema_id:
+        schema_type = "module"
+
     required = []
-    if "required" in schema:
+    if "required" in schema and schema_type != "module":
         required = schema["required"]
 
     if "name" in schema:
@@ -66,12 +81,6 @@ def extract_properties(schema):
                     props["stand_alone"].append(standAlone)
 
             else:
-
-                # if "user_friendly" in properties[property]:
-                #     prop_pairs[path] = properties[property]["user_friendly"]
-                #
-                # else:
-                #     prop_pairs[path] = property
                 if property in required:
                     prop_pairs[path] = "required"
                 else:

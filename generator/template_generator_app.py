@@ -12,6 +12,7 @@ import logging
 from utils import schema_loader
 from utils import properties_builder
 import configparser
+import datetime
 
 
 # from ingest-client import schema_template
@@ -143,15 +144,14 @@ def generate_yaml():
 
     # print(yaml_json)
 
-    # yaml = yaml_dump(yaml_load(json.dump(yaml_json, indent=4)))
-    # stream = file('document.yaml', 'w')
     yaml_data = yaml.dump(yaml_json, default_flow_style=False)
 
-
+    now = datetime.datetime.now()
+    filename = "hca_yaml-" + now.strftime("%Y-%m-%dT%H-%M-%S") + ".yaml"
     response = make_response(yaml_data)
     response.headers.set('Content-Type', 'application/x-yaml')
     response.headers.set('Content-Disposition', 'attachment',
-                         filename='output.yaml')
+                         filename=filename)
     return response
 
     # TO DO switch previous section and remove below - temp setting to avoid 100s of downloads in testing
