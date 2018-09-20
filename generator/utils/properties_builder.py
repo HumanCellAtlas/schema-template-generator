@@ -90,3 +90,36 @@ def extract_properties(schema):
     return props
 
 
+
+def extract_references(schema):
+    properties = schema["properties"]
+
+    title = schema["title"]
+    if "name" in schema:
+        name = schema["name"]
+    else:
+        name = title
+
+    required = []
+    if "required" in schema:
+        required = schema["required"]
+
+    structure = {}
+    structure["title"] = title
+    structure["name"] = name
+
+    references = {}
+    for property in properties:
+        if property not in EXCLUDED_PROPERTIES:
+            if "$ref" in properties[property]:
+                if property in required:
+                    references[property] = "required"
+                else:
+                    references[property] = "not required"
+
+    structure["references"] = references
+    return structure
+
+
+
+

@@ -43,6 +43,7 @@ logger = logging.getLogger(__name__)
 
 DISPLAY_NAME_MAP = {}
 
+CONFIG_FILE = ''
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -50,15 +51,45 @@ def upload_file():
     return "foo"
 
 
-@app.route('/load', methods=['GET'])
-def load_schemas():
+@app.route('/load_all', methods=['GET', 'POST'])
+def load_full_schemas():
+    urls = _getSchemaUrls()
+    schema_properties = process_schemas(urls)
+
+    if request.method == 'POST':
+        response = request.form
+
+        selected_schemas = []
+        if 'schema' in response:
+            selected_schemas = response.getlist('schema')
+
+        selected_properties = []
+        if 'reference' in response:
+            selected_properties = response.getlist('reference')
+
+        for s in selected_schemas:
+            print(s)
+
+        for p in selected_properties:
+            print(p)
+
+    return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
+
+def _getSchemaUrls():
     # TO DO - remove hard-coded environment!
     schemas_url = LATEST_SCHEMAS.replace("{env}", "dev")
     urls = schema_loader.retrieve_latest_schemas(schemas_url, "dev.data")
+    return urls
 
+def _loadConfig():
+    config_file = configparser.ConfigParser(allow_no_value=True)
+    config_file.read('config.ini')
+    return config_file;
+
+
+def process_schemas(urls):
     schema_properties = []
     unordered = {}
-
     process = ''
 
     for url in urls:
@@ -85,20 +116,41 @@ def load_schemas():
 
         DISPLAY_NAME_MAP[props["name"]] = props["title"]
 
-    config = configparser.ConfigParser(allow_no_value=True)
-    config.read('config.ini')
-
-    if 'ordering' in config:
-        for key in config['ordering'].keys():
+    if 'ordering' in CONFIG_FILE:
+        for key in CONFIG_FILE['ordering'].keys():
             if key in unordered.keys():
-                if config['ordering'][key] == 'process' and process != '':
+                if CONFIG_FILE['ordering'][key] == 'process' and process != '':
                     unordered[key]["properties"].update(process)
 
                 schema_properties.append(unordered[key])
             else:
                 print(key + " is currently not a recorded property")
-    return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
-    # return redirect(url_for('schemas'))
+    return schema_properties
+
+@app.route('/uploadYaml', methods=['POST'])
+def uploadYaml():
+    return render_template('index.html', helper=HTML_HELPER)
+
+@app.route('/load_select', methods=['GET'])
+def selectSchemas():
+    urls = _getSchemaUrls()
+    unordered = {}
+
+    for url in urls:
+        schema = schema_loader.load_schema(url)
+
+        references = properties_builder.extract_references(schema)
+        unordered[references["name"]] = references
+    orderedReferences = []
+
+    if 'ordering' in CONFIG_FILE:
+        for key in CONFIG_FILE['ordering'].keys():
+            if key in unordered.keys():
+                orderedReferences.append(unordered[key])
+            else:
+                print(key + " is currently not a recorded property")
+
+    return render_template('schema_selector.html', helper=HTML_HELPER, schemas=orderedReferences)
 
 
 @app.route('/')
@@ -171,5 +223,7 @@ def _save_file(data):
 if __name__ == '__main__':
 
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+    CONFIG_FILE = _loadConfig()
 
     app.run(host='0.0.0.0', port=5000)

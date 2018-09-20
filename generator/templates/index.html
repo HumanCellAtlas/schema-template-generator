@@ -23,21 +23,28 @@
         {% endwith %}
 
         <div class="grid-container">
-            <!--<div class="grid-item">-->
-                <!--<form  action="upload" method="POST" enctype="multipart/form-data">-->
-                    <!--<div class="form-group">-->
-                        <!--<label for="exampleInputFile">Please upload your YAML file</label>-->
-                        <!--<input type="file" name="file" class="form-control-file"  id="exampleInputFile" accept=".yaml"   aria-describedby="fileHelp">-->
-                    <!--</div>-->
-                    <!--<button type="submit" class="btn btn-primary">Submit</button>-->
-                <!--</form>-->
-            <!--</div>-->
             <div class="grid-item">
-               <form  action="load" method="GET" enctype="multipart/form-data">
+               <form  action="load_all" method="GET" enctype="multipart/form-data">
                     <div class="form-group">
                          <label for="allSchemas">Load all schemas</label>
                     </div>
                     <button type="submit" class="btn btn-primary" id="allSchemas">All schemas</button>
+               </form>
+            </div>
+             <div class="grid-item">
+               <form  action="load_select" method="GET" enctype="multipart/form-data">
+                    <div class="form-group">
+                         <label for="allSchemas">Pre-select schemas</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="selectSchemas">Select schemas</button>
+               </form>
+            </div>
+             <div class="grid-item">
+               <form  action="upload" method="GET" enctype="multipart/form-data">
+                    <div class="form-group">
+                         <label for="allSchemas">Upload a YAML file</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="uploadYaml">Upload YAML</button>
                </form>
             </div>
         </div>

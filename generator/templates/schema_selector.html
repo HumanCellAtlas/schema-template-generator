@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{url_for('static', filename = 'css/schemas.css')}}">
+<script src="{{url_for('static', filename = 'js/index.js')}}"></script>
+<script src="{{url_for('static', filename = 'js/collapsible.js')}}"></script>
+<script src="{{url_for('static', filename = 'js/schemas.js')}}"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="starter-template">
+        <h1>Spreadsheet Template Generator</h1>
+        <!--<div class="grid-container">-->
+            <!--<div class="grid-item">-->
+               <form action="load_all" method="POST" enctype="multipart/form-data">
+                    <p class="lead">Select the schemas you need</p>
+
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert {{category}}">
+                                       {{ message }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        <hr/>
+                        <div id="data-items">
+                            {% for schema in schemas %}
+
+                            <div class="column" id="{{ schema['name'] }}">
+                              <input type="checkbox" name="schema" class="schema" value="{{ schema['name'] }}">{{ schema['title'] }}<br>
+                              <ul style="list-style-type:none">
+                                {% for reference in schema['references'] %}
+
+                                   {% if schema['references'][reference] == 'required' %}
+                                      <li><input type="checkbox" name="reference" class="reference" value="{{ schema['name'] }}:{{ reference }}" checked onclick="this.checked=!this.checked;">{{ reference }}</li>
+                                    {% else %}
+                    <li><input type="checkbox" name="reference" class="reference" value="{{ schema['name'] }}:{{ reference }}">{{ reference }}</li>
+                                    {% endif %}
+                                {% endfor %}
+
+                               </ul>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <hr/>
+                    <div class="form-group">
+                         <label for="loadProperties">Load properties for selected schemas</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="loadProperties">Load properties</button>
+               </form>
+            <!--</div>-->
+        <!--</div>-->
+        <hr/>
+    </div>
+</div>
+
+
+{% endblock %}
