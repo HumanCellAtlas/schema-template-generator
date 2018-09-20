@@ -8,9 +8,9 @@
                 <ul style="list-style-type:none">
                      {% for property in schema['properties'] %}
                         {% if schema['properties'][property] == 'required' %}
-                    <li><input type="checkbox" name="property" class="property" value="{{ property }}" checked>{{ property }}</li>
+                    <li><input type="checkbox" name="property" class="property" value="{{ schema['name'] }}:{{ property }}" checked>{{ property }}</li>
                         {% else %}
-                    <li><input type="checkbox" name="property" class="property" value="{{ property }}">{{ property }}</li>
+                    <li><input type="checkbox" name="property" class="property" value="{{ schema['name'] }}:{{ property }}">{{ property }}</li>
                         {% endif %}
                     {% endfor %}
                     <li><input type="button" class="btn btn-sml {{ schema['name'] }} addProperty" id="{{ 'addProperty:' ~ schema['name'] }}" value="Add property"></li>

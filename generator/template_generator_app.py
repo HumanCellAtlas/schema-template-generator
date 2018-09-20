@@ -68,7 +68,11 @@ def load_schemas():
         if "stand_alone" in props:
             standAlone = props["stand_alone"]
             for sa in standAlone:
-                unordered[sa["name"]] = sa
+                if sa["name"] not in unordered.keys():
+                    unordered[sa["name"]] = sa
+                else:
+                    sa["name"] = props["name"] + '.'+ sa["name"]
+                    unordered[sa["name"]] = sa
             del props["stand_alone"]
         if props["name"] == "process":
             process = props["properties"]
@@ -125,9 +129,11 @@ def generate_yaml():
             tab["display_name"] = schema
         columns = []
         for prop in selected_properties:
-            if schema in prop:
+            t = prop.split(':')[0]
+            val = prop.split(':')[1]
+            if schema == t:
                 # print("Property " + prop + " belongs to schema " + schema)
-                columns.append(prop)
+                columns.append(val)
         tab["columns"] = columns
         entry[schema] = tab
         pre_yaml.append(entry)
