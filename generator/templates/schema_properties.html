@@ -3,12 +3,18 @@
         <button type="button" class="collapsible">{{ schema['title'] }}</button>
         <div class="content row">
             <div class="column" id="{{ schema['name'] }}">
-
-                <input type="checkbox" name="schema" class="schema" value="{{ schema['name'] }}">{{ schema['title'] }}<br>
+                {% if schema['pre-selected'] == True %}
+                <input type="checkbox" name="schema" class="schema" value="{{ schema['name'] }}" checked>{{ schema['title'] }}
+                {% else %}
+                <input type="checkbox" name="schema" class="schema" value="{{ schema['name'] }}">{{ schema['title'] }}
+                {% endif %}
+                <br>
                 <ul style="list-style-type:none">
                      {% for property in schema['properties'] %}
                         {% if schema['properties'][property] == 'required' %}
                     <li><input type="checkbox" name="property" class="property" value="{{ schema['name'] }}:{{ property }}" checked onclick="this.checked=!this.checked;">{{ property }}</li>
+                        {% elif schema['properties'][property] == 'pre-selected' %}
+                    <li><input type="checkbox" name="property" class="property" value="{{ schema['name'] }}:{{ property }}" checked x>{{ property }}</li>
                         {% else %}
                     <li><input type="checkbox" name="property" class="property" value="{{ schema['name'] }}:{{ property }}">{{ property }}</li>
                         {% endif %}

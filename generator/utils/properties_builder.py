@@ -36,6 +36,7 @@ def extract_properties(schema):
     props = {}
     props["title"] = title
     props["name"] = name
+    props["select"] = False
 
     prop_pairs = {}
 

@@ -63,15 +63,22 @@ def load_full_schemas():
         if 'schema' in response:
             selected_schemas = response.getlist('schema')
 
-        selected_properties = []
+        selected_references = []
         if 'reference' in response:
-            selected_properties = response.getlist('reference')
+            selected_references = response.getlist('reference')
 
-        for s in selected_schemas:
-            print(s)
+        for schema in schema_properties:
+            if schema["name"] in selected_schemas:
+                schema["pre-selected"] = True
+                properties = schema["properties"]
 
-        for p in selected_properties:
-            print(p)
+                for ref in selected_references:
+                    t = ref.split(':')[0]
+                    val = ref.split(':')[1]
+                    if schema["name"] == t:
+                        for prop in properties.keys():
+                            if val in prop and properties[prop] == "not required":
+                                schema["properties"][prop] = "pre-selected"
 
     return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
 
