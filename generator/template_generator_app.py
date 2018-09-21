@@ -73,7 +73,7 @@ def load_full_schemas():
                     val = ref.split(':')[1]
                     if schema["name"] == t:
                         for prop in properties.keys():
-                            if val in prop and properties[prop] == "not required":
+                            if (val in prop or len(prop.split('.')) == 2) and properties[prop] == "not required":
                                 schema["properties"][prop] = "pre-selected"
 
     return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
@@ -111,6 +111,7 @@ def process_schemas(urls):
                 else:
                     sa["name"] = props["name"] + '.'+ sa["name"]
                     unordered[sa["name"]] = sa
+                DISPLAY_NAME_MAP[sa["name"]] = sa["title"]
             del props["stand_alone"]
         if props["name"] == "process":
             process = props["properties"]
