@@ -2,8 +2,6 @@
 import sys
 
 import os
-import tempfile
-
 import yaml
 from flask import Flask, Markup, flash, request, render_template, redirect, url_for, make_response
 from flask_cors import CORS, cross_origin
@@ -14,8 +12,6 @@ from utils import properties_builder
 import configparser
 import datetime
 
-
-# from ingest-client import schema_template
 
 LATEST_SCHEMAS = "http://api.ingest.{env}.data.humancellatlas.org/schemas/search/latestSchemas"
 
@@ -83,14 +79,17 @@ def load_full_schemas():
     return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
 
 def _getSchemaUrls():
-    # TO DO - remove hard-coded environment!
-    schemas_url = LATEST_SCHEMAS.replace("{env}", "dev")
-    urls = schema_loader.retrieve_latest_schemas(schemas_url, "dev.data")
+    env = ''
+    if 'system' in CONFIG_FILE and 'environment' in CONFIG_FILE['system']:
+        env = CONFIG_FILE['system']['environment']
+    # print("Environment is: " + env)
+    schemas_url = LATEST_SCHEMAS.replace("{env}", env)
+    urls = schema_loader.retrieve_latest_schemas(schemas_url, env+".data")
     return urls
 
-def _loadConfig():
+def _loadConfig(file):
     config_file = configparser.ConfigParser(allow_no_value=True)
-    config_file.read('config.ini')
+    config_file.read(file)
     return config_file;
 
 
@@ -231,6 +230,10 @@ if __name__ == '__main__':
 
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-    CONFIG_FILE = _loadConfig()
+    # if '/generator' in dir:
+    #     dir = dir.replace('/generator', '')
+    # base_uri = dir + "/"
 
+    CONFIG_FILE = _loadConfig('config.ini')
+    # print(CONFIG_FILE['system'])
     app.run(host='0.0.0.0', port=5000)

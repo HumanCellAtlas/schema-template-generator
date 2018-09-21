@@ -1,5 +1,5 @@
 import json
-import urllib
+import urllib.request
 
 BASE_URL = "http://schema.{schema_env}.humancellatlas.org/"
 

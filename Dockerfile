@@ -1,4 +1,4 @@
-FROM frolvlad/alpine-python2
+FROM frolvlad/alpine-python3
 MAINTAINER Dani Welter "dwelter@ebi.ac.uk"
 
 RUN mkdir /app
@@ -6,7 +6,7 @@ COPY generator /app/generator
 COPY generator/templates /app/templates
 COPY generator/static /app/static
 COPY generator/template_generator_app.py requirements.txt /app/
-WORKDIR /app
+WORKDIR /app/generator
 
 RUN pip install -r /app/requirements.txt
 
@@ -14,4 +14,4 @@ ENV INGEST_API=http://localhost:8080
 
 EXPOSE 5000
 ENTRYPOINT ["python"]
-CMD ["generator/generator_app.py"]
+CMD ["template_generator_app.py"]
