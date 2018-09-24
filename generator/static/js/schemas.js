@@ -75,6 +75,10 @@ function selectLocal(element){
         }
         else{
             $(this).prop('checked', false)
+             if ($(this).hasClass('disabled')){
+                $(this).removeClass('disabled');
+                $(this).removeProp('onclick');
+            }
         }
     });
 }
