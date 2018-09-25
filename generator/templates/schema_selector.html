@@ -36,7 +36,7 @@
                                 {% for reference in schema['references'] %}
 
                                    {% if schema['references'][reference] == 'required' %}
-                                      <li><input type="checkbox" name="reference" class="reference" value="{{ schema['name'] }}:{{ reference }}" checked onclick="this.checked=!this.checked;">{{ reference }}</li>
+                                      <li><input type="checkbox" name="reference" class="reference" value="{{ schema['name'] }}:{{ reference }}" checked onclick="this.checked=!this.checked;">{{ reference  ~ '*' }}</li>
                                     {% else %}
                     <li><input type="checkbox" name="reference" class="reference" value="{{ schema['name'] }}:{{ reference }}">{{ reference }}</li>
                                     {% endif %}

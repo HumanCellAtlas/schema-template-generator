@@ -73,7 +73,7 @@ def load_full_schemas():
                     val = ref.split(':')[1]
                     if schema["name"] == t:
                         for prop in properties.keys():
-                            if (val in prop or len(prop.split('.')) == 2) and properties[prop] == "not required":
+                            if (val == prop.split('.')[1] or (len(prop.split('.')) == 2 and prop.split('.')[0] != 'process')) and properties[prop] == "not required":
                                 schema["properties"][prop] = "pre-selected"
 
     return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)

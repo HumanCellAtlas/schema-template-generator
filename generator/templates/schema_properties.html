@@ -14,7 +14,7 @@
                         {% if schema['properties'][property] == 'required' %}
                     <li><input type="checkbox" name="property" class="property disabled" value="{{ schema['name'] }}:{{ property }}" checked onclick="this.checked=!this.checked;">{{ property ~ '*' }}</li>
                         {% elif schema['properties'][property] == 'pre-selected' %}
-                    <li><input type="checkbox" name="property" class="property" value="{{ schema['name'] }}:{{ property }}" checked x>{{ property }}</li>
+                    <li><input type="checkbox" name="property" class="property" value="{{ schema['name'] }}:{{ property }}" checked >{{ property }}</li>
                         {% else %}
                     <li><input type="checkbox" name="property" class="property" value="{{ schema['name'] }}:{{ property }}">{{ property }}</li>
                         {% endif %}

@@ -15,11 +15,11 @@ def extract_properties(schema):
 
     schema_type = ''
 
-    if "type" in schema_id:
+    if "type/" in schema_id:
         schema_type = "type"
-    elif "core" in schema_id:
+    elif "core/" in schema_id:
         schema_type = "core"
-    elif "module" in schema_id:
+    elif "module/" in schema_id:
         schema_type = "module"
 
     required = []
@@ -52,7 +52,11 @@ def extract_properties(schema):
                     val = ref_props["properties"][key]
                     els = key.split(".")
                     newKey = path + "." + ".".join(els[1:])
-                    prop_pairs[newKey] = val
+
+                    if property in required and "text" in key:
+                        prop_pairs[newKey] = 'required'
+                    else:
+                        prop_pairs[newKey] = val
 
             elif "items" in properties[property] and "$ref" in properties[property]["items"]:
                 ref = properties[property]["items"]["$ref"]
