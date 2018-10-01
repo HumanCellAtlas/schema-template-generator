@@ -116,7 +116,7 @@ def extract_references(schema):
     references = {}
     for property in properties:
         if property not in EXCLUDED_PROPERTIES:
-            if "$ref" in properties[property]:
+            if "$ref" in properties[property] and "ontology" not in properties[property]['$ref']:
                 if property in required:
                     references[property] = "required"
                 else:
