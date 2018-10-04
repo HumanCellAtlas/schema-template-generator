@@ -50,7 +50,7 @@ def upload_file():
 @app.route('/load_all', methods=['GET', 'POST'])
 def load_full_schemas():
     urls = _getSchemaUrls()
-    schema_properties = process_schemas(urls)
+    schema_properties = _process_schemas(urls)
 
     if request.method == 'POST':
         response = request.form
@@ -77,62 +77,6 @@ def load_full_schemas():
                                 schema["properties"][prop] = "pre-selected"
 
     return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
-
-def _getSchemaUrls():
-    env = ''
-    if 'system' in CONFIG_FILE and 'environment' in CONFIG_FILE['system']:
-        env = CONFIG_FILE['system']['environment']
-    # print("Environment is: " + env)
-    schemas_url = LATEST_SCHEMAS.replace("{env}", env)
-    urls = schema_loader.retrieve_latest_schemas(schemas_url, env+".data")
-    return urls
-
-def _loadConfig(file):
-    config_file = configparser.ConfigParser(allow_no_value=True)
-    config_file.read(file)
-    return config_file;
-
-
-def process_schemas(urls):
-    schema_properties = []
-    unordered = {}
-    process = ''
-
-    for url in urls:
-        schema = schema_loader.load_schema(url)
-
-        props = properties_builder.extract_properties(schema)
-
-        if "stand_alone" in props:
-            standAlone = props["stand_alone"]
-            for sa in standAlone:
-                if sa["name"] not in unordered.keys():
-                    unordered[sa["name"]] = sa
-                else:
-                    sa["name"] = props["name"] + '.'+ sa["name"]
-                    unordered[sa["name"]] = sa
-                DISPLAY_NAME_MAP[sa["name"]] = sa["title"]
-            del props["stand_alone"]
-        if props["name"] == "process":
-            process = props["properties"]
-            for k in process.keys():
-                if process[k] == "required":
-                    process[k] = "not required"
-
-        unordered[props["name"]] = props
-
-        DISPLAY_NAME_MAP[props["name"]] = props["title"]
-
-    if 'ordering' in CONFIG_FILE:
-        for key in CONFIG_FILE['ordering'].keys():
-            if key in unordered.keys():
-                if CONFIG_FILE['ordering'][key] == 'process' and process != '':
-                    unordered[key]["properties"].update(process)
-
-                schema_properties.append(unordered[key])
-            else:
-                print(key + " is currently not a recorded property")
-    return schema_properties
 
 @app.route('/uploadYaml', methods=['POST'])
 def uploadYaml():
@@ -218,14 +162,61 @@ def generate_yaml():
     # return redirect(url_for('index'))
 
 
+def _getSchemaUrls():
+    env = ''
+    if 'system' in CONFIG_FILE and 'environment' in CONFIG_FILE['system']:
+        env = CONFIG_FILE['system']['environment']
+    # print("Environment is: " + env)
+    schemas_url = LATEST_SCHEMAS.replace("{env}", env)
+    urls = schema_loader.retrieve_latest_schemas(schemas_url, env+".data")
+    return urls
 
-def _save_file(data):
-    dir = os.getcwd()
-    tmpFile = open(dir + "/output.yaml", "w")
-    tmpFile.write(data)
-    tmpFile.close()
+def _loadConfig(file):
+    config_file = configparser.ConfigParser(allow_no_value=True)
+    config_file.read(file)
+    return config_file;
 
 
+def _process_schemas(urls):
+    schema_properties = []
+    unordered = {}
+    process = ''
+
+    for url in urls:
+        schema = schema_loader.load_schema(url)
+
+        props = properties_builder.extract_properties(schema)
+
+        if "stand_alone" in props:
+            standAlone = props["stand_alone"]
+            for sa in standAlone:
+                if sa["name"] not in unordered.keys():
+                    unordered[sa["name"]] = sa
+                else:
+                    sa["name"] = props["name"] + '.'+ sa["name"]
+                    unordered[sa["name"]] = sa
+                DISPLAY_NAME_MAP[sa["name"]] = sa["title"]
+            del props["stand_alone"]
+        if props["name"] == "process":
+            process = props["properties"]
+            for k in process.keys():
+                if process[k] == "required":
+                    process[k] = "not required"
+
+        unordered[props["name"]] = props
+
+        DISPLAY_NAME_MAP[props["name"]] = props["title"]
+
+    if 'ordering' in CONFIG_FILE:
+        for key in CONFIG_FILE['ordering'].keys():
+            if key in unordered.keys():
+                if CONFIG_FILE['ordering'][key] == 'process' and process != '':
+                    unordered[key]["properties"].update(process)
+
+                schema_properties.append(unordered[key])
+            else:
+                print(key + " is currently not a recorded property")
+    return schema_properties
 
 if __name__ == '__main__':
 
