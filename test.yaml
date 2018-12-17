@@ -1,0 +1,9 @@
+tabs:
+- cell_line:
+    columns:
+    - cell_line.biomaterial_core.biomaterial_id
+    - cell_line.biomaterial_core.biomaterial_name
+    - cell_line.biomaterial_core.biomaterial_description
+    - cell_line.biomaterial_core.ncbi_taxon_id
+    display_name: Cell line
+

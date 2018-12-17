@@ -6,6 +6,7 @@ import yaml
 from flask import Flask, Markup, flash, request, render_template, redirect, url_for, make_response
 from flask_cors import CORS, cross_origin
 import logging
+from werkzeug.utils import secure_filename
 
 from utils import schema_loader
 from utils import properties_builder
@@ -23,6 +24,9 @@ STATUS_LABEL = {
     'Complete': 'label-default'
 }
 
+ALLOWED_EXTENSIONS = set(['yaml', 'yml'])
+UPLOAD_FOLDER = 'tmp/yaml_file'
+
 DEFAULT_STATUS_LABEL = 'label-warning'
 
 
@@ -35,6 +39,8 @@ app = Flask(__name__, static_folder='static')
 app.secret_key = 'cells'
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 logger = logging.getLogger(__name__)
 
 DISPLAY_NAME_MAP = {}
@@ -43,8 +49,25 @@ CONFIG_FILE = ''
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
+
+    if 'yamlfile' not in request.files:
+        flash('No file part')
+        return redirect(request.url)
+    file = request.files['yamlfile']
+
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(request.url)
+    if file and _allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        directory = os.path.abspath(app.config['UPLOAD_FOLDER'])
+        if not os.path.exists(directory):
+            os.makedirs(app.config['UPLOAD_FOLDER'])
+        file.save(os.path.join(directory, filename))
+        # return redirect(url_for('uploaded_file',filename=filename))
+        return "foo"
     #read yaml file and process it
-    return "foo"
+    # return "foo"
 
 
 @app.route('/load_all', methods=['GET', 'POST'])
@@ -77,10 +100,6 @@ def load_full_schemas():
                                 schema["properties"][prop] = "pre-selected"
 
     return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
-
-@app.route('/uploadYaml', methods=['POST'])
-def uploadYaml():
-    return render_template('index.html', helper=HTML_HELPER)
 
 @app.route('/load_select', methods=['GET'])
 def selectSchemas():
@@ -175,6 +194,9 @@ def _loadConfig(file):
     config_file = configparser.ConfigParser(allow_no_value=True)
     config_file.read(file)
     return config_file;
+
+def _allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def _process_schemas(urls):

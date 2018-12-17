@@ -40,9 +40,12 @@
                </form>
             </div>
              <div class="grid-item">
-               <form  action="upload" method="GET" enctype="multipart/form-data">
+               <form  action="upload" method="POST" enctype="multipart/form-data">
                     <div class="form-group">
-                         <label for="allSchemas">Upload a YAML file</label>
+                       <label for="yamlUpload" class="btn btn-info btn-file">Upload a YAML file
+                          <input type="file" accept=".yaml,.yml" name="yamlfile" id="yamlUpload" style="display: none;">
+
+                       </label>
                     </div>
                     <button type="submit" class="btn btn-primary" id="uploadYaml">Upload YAML</button>
                </form>
