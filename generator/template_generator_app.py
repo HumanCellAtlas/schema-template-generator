@@ -182,15 +182,18 @@ def generate_yaml():
 def _process_uploaded_file(file):
     selected_schemas = []
     # selected_references = []
-    selected_properties = []
+    selected_properties = {}
 
     for schema in file:
         schema_name = list(schema.keys())[0]
         selected_schemas.append(schema_name)
         properties = schema[schema_name]['columns']
 
+        props = []
+
         for prop in properties:
-            selected_properties.append(prop)
+            props.append(prop)
+        selected_properties[schema_name] = props
 
     return selected_schemas, selected_properties
 
@@ -211,13 +214,14 @@ def _preselect_properties(schema_properties, selected_schemas, selected_referenc
                                 prop] == "not required":
                                 schema["properties"][prop] = "pre-selected"
             if selected_properties:
-                # for p in selected_properties:
-                #     t = p.split('.')[0]
-                #     if schema["name"] == t:
-                for prop in properties.keys():
-                    if prop in selected_properties and properties[prop] == "not required":
-                        schema["properties"][prop] = "pre-selected"
+                if schema["name"] in selected_properties:
+                    sel_props = selected_properties[schema["name"]]
 
+                    for prop in sel_props:
+                        if prop in list(properties.keys()) and properties[prop] == "not required":
+                                schema["properties"][prop] = "pre-selected"
+                        elif prop not in list(properties.keys()):
+                            schema["properties"][prop] = "pre-selected"
     return schema_properties
 
 
