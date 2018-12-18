@@ -59,21 +59,30 @@ def upload_file():
         flash('No selected file')
         return redirect(request.url)
     if file and _allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        directory = os.path.abspath(app.config['UPLOAD_FOLDER'])
-        if not os.path.exists(directory):
-            os.makedirs(app.config['UPLOAD_FOLDER'])
-        file.save(os.path.join(directory, filename))
-        # return redirect(url_for('uploaded_file',filename=filename))
-        return "foo"
-    #read yaml file and process it
-    # return "foo"
+
+        content = yaml.load(file.stream.read())
+
+        # filename = secure_filename(file.filename)
+        # directory = os.path.abspath(app.config['UPLOAD_FOLDER'])
+        # if not os.path.exists(directory):
+        #     os.makedirs(app.config['UPLOAD_FOLDER'])
+        # file.save(os.path.join(directory, filename))
+
+        urls = _getSchemaUrls()
+        all_properties = _process_schemas(urls)
+
+        selected_schemas, selected_properties = _process_uploaded_file(content['tabs'])
+
+        schema_properties = _preselect_properties(all_properties, selected_schemas, None, selected_properties)
+
+        return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
+
 
 
 @app.route('/load_all', methods=['GET', 'POST'])
 def load_full_schemas():
     urls = _getSchemaUrls()
-    schema_properties = _process_schemas(urls)
+    all_properties = _process_schemas(urls)
 
     if request.method == 'POST':
         response = request.form
@@ -86,18 +95,7 @@ def load_full_schemas():
         if 'reference' in response:
             selected_references = response.getlist('reference')
 
-        for schema in schema_properties:
-            if schema["name"] in selected_schemas:
-                schema["pre-selected"] = True
-                properties = schema["properties"]
-
-                for ref in selected_references:
-                    t = ref.split(':')[0]
-                    val = ref.split(':')[1]
-                    if schema["name"] == t:
-                        for prop in properties.keys():
-                            if (val == prop.split('.')[1] or (len(prop.split('.')) == 2 and prop.split('.')[0] != 'process')) and properties[prop] == "not required":
-                                schema["properties"][prop] = "pre-selected"
+        schema_properties = _preselect_properties(all_properties, selected_schemas, selected_references, None)
 
     return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
 
@@ -179,6 +177,48 @@ def generate_yaml():
     # TO DO switch previous section and remove below - temp setting to avoid 100s of downloads in testing
     # print(yaml_data)
     # return redirect(url_for('index'))
+
+
+def _process_uploaded_file(file):
+    selected_schemas = []
+    # selected_references = []
+    selected_properties = []
+
+    for schema in file:
+        schema_name = list(schema.keys())[0]
+        selected_schemas.append(schema_name)
+        properties = schema[schema_name]['columns']
+
+        for prop in properties:
+            selected_properties.append(prop)
+
+    return selected_schemas, selected_properties
+
+def _preselect_properties(schema_properties, selected_schemas, selected_references, selected_properties):
+    for schema in schema_properties:
+        if schema["name"] in selected_schemas:
+            schema["pre-selected"] = True
+            properties = schema["properties"]
+
+            if selected_references:
+                for ref in selected_references:
+                    t = ref.split(':')[0]
+                    val = ref.split(':')[1]
+                    if schema["name"] == t:
+                        for prop in properties.keys():
+                            if (val == prop.split('.')[1] or (
+                                    len(prop.split('.')) == 2 and prop.split('.')[0] != 'process')) and properties[
+                                prop] == "not required":
+                                schema["properties"][prop] = "pre-selected"
+            if selected_properties:
+                # for p in selected_properties:
+                #     t = p.split('.')[0]
+                #     if schema["name"] == t:
+                for prop in properties.keys():
+                    if prop in selected_properties and properties[prop] == "not required":
+                        schema["properties"][prop] = "pre-selected"
+
+    return schema_properties
 
 
 def _getSchemaUrls():
