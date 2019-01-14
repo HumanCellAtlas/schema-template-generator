@@ -12,6 +12,7 @@ from utils import schema_loader
 from utils import properties_builder
 import configparser
 import datetime
+from ingest.template.schema_template import SchemaParser
 
 
 LATEST_SCHEMAS = "http://api.ingest.{env}.data.humancellatlas.org/schemas/search/latestSchemas"
@@ -84,18 +85,18 @@ def load_full_schemas():
     urls = _getSchemaUrls()
     all_properties = _process_schemas(urls)
 
-    if request.method == 'POST':
-        response = request.form
+    # if request.method == 'POST':
+    response = request.form
 
-        selected_schemas = []
-        if 'schema' in response:
-            selected_schemas = response.getlist('schema')
+    selected_schemas = []
+    if 'schema' in response:
+        selected_schemas = response.getlist('schema')
 
-        selected_references = []
-        if 'reference' in response:
-            selected_references = response.getlist('reference')
+    selected_references = []
+    if 'reference' in response:
+        selected_references = response.getlist('reference')
 
-        schema_properties = _preselect_properties(all_properties, selected_schemas, selected_references, None)
+    schema_properties = _preselect_properties(all_properties, selected_schemas, selected_references, None)
 
     return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
 
@@ -248,6 +249,8 @@ def _process_schemas(urls):
     unordered = {}
     process = ''
 
+    schema_parser._load(urls)
+
     for url in urls:
         schema = schema_loader.load_schema(url)
 
@@ -291,6 +294,8 @@ if __name__ == '__main__':
     # if '/generator' in dir:
     #     dir = dir.replace('/generator', '')
     # base_uri = dir + "/"
+
+    schema_parser = SchemaParser()
 
     CONFIG_FILE = _loadConfig('config.ini')
     # print(CONFIG_FILE['system'])
