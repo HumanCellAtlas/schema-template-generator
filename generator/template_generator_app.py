@@ -13,6 +13,8 @@ from utils import properties_builder
 import configparser
 import datetime
 
+from ingest.template.schema_template import SchemaTemplate
+
 
 LATEST_SCHEMAS = "http://api.ingest.{env}.data.humancellatlas.org/schemas/search/latestSchemas"
 
@@ -79,23 +81,28 @@ def upload_file():
 
 
 
+
+
+
+
 @app.route('/load_all', methods=['GET', 'POST'])
 def load_full_schemas():
-    urls = _getSchemaUrls()
-    all_properties = _process_schemas(urls)
+    # urls = _getSchemaUrls()
+    # all_properties = _process_schemas(urls)
+    all_properties = _process_schemas_2()
 
-    if request.method == 'POST':
-        response = request.form
 
-        selected_schemas = []
-        if 'schema' in response:
-            selected_schemas = response.getlist('schema')
+    response = request.form
 
-        selected_references = []
-        if 'reference' in response:
-            selected_references = response.getlist('reference')
+    selected_schemas = []
+    if 'schema' in response:
+        selected_schemas = response.getlist('schema')
 
-        schema_properties = _preselect_properties(all_properties, selected_schemas, selected_references, None)
+    selected_references = []
+    if 'reference' in response:
+        selected_references = response.getlist('reference')
+
+    schema_properties = _preselect_properties(all_properties, selected_schemas, selected_references, None)
 
     return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
 
@@ -237,10 +244,40 @@ def _getSchemaUrls():
 def _loadConfig(file):
     config_file = configparser.ConfigParser(allow_no_value=True)
     config_file.read(file)
-    return config_file;
+    return config_file
 
 def _allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def _process_schemas_2():
+    template = SchemaTemplate()
+
+    tab_config = template.get_tabs_config()
+
+
+    all_properties = []
+    for schema in tab_config.lookup('tabs'):
+        property = {}
+
+        schema_name = list(schema.keys())[0]
+
+        property["title"] = schema[schema_name]["display_name"]
+        property["name"] = schema_name
+        property["select"] = False
+        if "properties" not in property:
+            property["properties"] = {}
+
+        for p in schema[schema_name]['columns']:
+            if template.lookup(p+".required"):
+                property["properties"][p]="required"
+            else:
+                property["properties"][p]="not required"
+
+
+        all_properties.append(property)
+
+
+    return  all_properties
 
 
 def _process_schemas(urls):
