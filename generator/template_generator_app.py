@@ -254,7 +254,7 @@ def _process_schemas_2():
 
     tab_config = template.get_tabs_config()
 
-
+    unordered = {}
     all_properties = []
     for schema in tab_config.lookup('tabs'):
         property = {}
@@ -274,11 +274,31 @@ def _process_schemas_2():
                 else:
                     property["properties"][p]="not required"
 
+        if property["name"] == "process":
+            process = property["properties"]
+            for k in process.keys():
+                if process[k] == "required":
+                    process[k] = "not required"
+        # all_properties.append(property)
 
-        all_properties.append(property)
+        unordered[property["name"]] = property
+
+        DISPLAY_NAME_MAP[property["name"]] = property["title"]
 
 
-    return  all_properties
+    if 'ordering' in CONFIG_FILE:
+        for key in CONFIG_FILE['ordering'].keys():
+            if key in unordered.keys():
+                if CONFIG_FILE['ordering'][key] == 'process' and process != '':
+                    unordered[key]["properties"].update(process)
+
+                all_properties.append(unordered[key])
+            else:
+                print(key + " is currently not a recorded property")
+
+
+
+        return  all_properties
 
 
 def _process_schemas(urls):
