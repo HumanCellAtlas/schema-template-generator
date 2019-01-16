@@ -12,7 +12,6 @@ from utils import schema_loader
 from utils import properties_builder
 import configparser
 import datetime
-from ingest.template.schema_template import SchemaParser
 
 
 LATEST_SCHEMAS = "http://api.ingest.{env}.data.humancellatlas.org/schemas/search/latestSchemas"
@@ -249,7 +248,6 @@ def _process_schemas(urls):
     unordered = {}
     process = ''
 
-    schema_parser._load(urls)
 
     for url in urls:
         schema = schema_loader.load_schema(url)
@@ -295,7 +293,6 @@ if __name__ == '__main__':
     #     dir = dir.replace('/generator', '')
     # base_uri = dir + "/"
 
-    schema_parser = SchemaParser()
 
     CONFIG_FILE = _loadConfig('config.ini')
     # print(CONFIG_FILE['system'])
