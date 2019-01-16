@@ -268,10 +268,11 @@ def _process_schemas_2():
             property["properties"] = {}
 
         for p in schema[schema_name]['columns']:
-            if template.lookup(p+".required"):
-                property["properties"][p]="required"
-            else:
-                property["properties"][p]="not required"
+            if "provenance" not in p:
+                if template.lookup(p+".required"):
+                    property["properties"][p]="required"
+                else:
+                    property["properties"][p]="not required"
 
 
         all_properties.append(property)
