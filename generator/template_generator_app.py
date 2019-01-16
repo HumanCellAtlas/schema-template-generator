@@ -293,6 +293,29 @@ def _process_schemas_2():
                     unordered[key]["properties"].update(process)
 
                 all_properties.append(unordered[key])
+            elif CONFIG_FILE['ordering'][key] != '':
+                parent = CONFIG_FILE['ordering'][key]
+                if parent in unordered.keys():
+                    new_property = {}
+
+                    new_property["title"] = tab_config.lookup('meta_data_properties')[parent][key]['user_friendly']
+                    new_property["name"] = key
+                    new_property["select"] = False
+                    if "properties" not in new_property:
+                        new_property["properties"] = {}
+
+                    for prop in unordered[parent]['properties']:
+                        if key in prop:
+                            new_property["properties"][prop] = unordered[parent]['properties'][prop]
+
+                    for moved_prop in new_property["properties"]:
+                        unordered[parent]['properties'].pop(moved_prop)
+
+                    DISPLAY_NAME_MAP[new_property["name"]] = new_property["title"]
+
+                    all_properties.append(new_property)
+
+                    print(key + " is a recorded sub-property")
             else:
                 print(key + " is currently not a recorded property")
 
