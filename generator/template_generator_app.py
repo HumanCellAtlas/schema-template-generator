@@ -6,15 +6,12 @@ import yaml
 from flask import Flask, Markup, flash, request, render_template, redirect, url_for, make_response
 from flask_cors import CORS, cross_origin
 import logging
-from werkzeug.utils import secure_filename
-
-from utils import schema_loader
-from utils import properties_builder
 import configparser
 import datetime
 
 from ingest.template.schema_template import SchemaTemplate
 
+EXCLUDED_PROPERTIES = ["describedBy", "schema_version", "schema_type", "provenance"]
 
 LATEST_SCHEMAS = "http://api.ingest.{env}.data.humancellatlas.org/schemas/search/latestSchemas"
 
@@ -70,8 +67,7 @@ def upload_file():
         #     os.makedirs(app.config['UPLOAD_FOLDER'])
         # file.save(os.path.join(directory, filename))
 
-        urls = _getSchemaUrls()
-        all_properties = _process_schemas(urls)
+        all_properties = _process_schemas()
 
         selected_schemas, selected_properties = _process_uploaded_file(content['tabs'])
 
@@ -80,17 +76,9 @@ def upload_file():
         return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
 
 
-
-
-
-
-
 @app.route('/load_all', methods=['GET', 'POST'])
 def load_full_schemas():
-    # urls = _getSchemaUrls()
-    # all_properties = _process_schemas(urls)
-    all_properties = _process_schemas_2()
-
+    all_properties = _process_schemas()
 
     response = request.form
 
@@ -108,13 +96,21 @@ def load_full_schemas():
 
 @app.route('/load_select', methods=['GET'])
 def selectSchemas():
-    urls = _getSchemaUrls()
+
+    template = SchemaTemplate()
+
+    tab_config = template.get_tabs_config()
+
     unordered = {}
+    for schema in tab_config.lookup('tabs'):
+        schema_name = list(schema.keys())[0]
 
-    for url in urls:
-        schema = schema_loader.load_schema(url)
+        properties = schema[schema_name]['columns']
+        schema_title = schema[schema_name]['display_name']
 
-        references = properties_builder.extract_references(schema)
+        schema_structure = tab_config.lookup('meta_data_properties')[schema_name]
+
+        references = _extract_references(properties, schema_name, schema_title, schema_structure)
         unordered[references["name"]] = references
     orderedReferences = []
 
@@ -232,14 +228,14 @@ def _preselect_properties(schema_properties, selected_schemas, selected_referenc
     return schema_properties
 
 
-def _getSchemaUrls():
-    env = ''
-    if 'system' in CONFIG_FILE and 'environment' in CONFIG_FILE['system']:
-        env = CONFIG_FILE['system']['environment']
-    # print("Environment is: " + env)
-    schemas_url = LATEST_SCHEMAS.replace("{env}", env)
-    urls = schema_loader.retrieve_latest_schemas(schemas_url, env+".data")
-    return urls
+# def _getSchemaUrls():
+#     env = ''
+#     if 'system' in CONFIG_FILE and 'environment' in CONFIG_FILE['system']:
+#         env = CONFIG_FILE['system']['environment']
+#     # print("Environment is: " + env)
+#     schemas_url = LATEST_SCHEMAS.replace("{env}", env)
+#     urls = schema_loader.retrieve_latest_schemas(schemas_url, env+".data")
+#     return urls
 
 def _loadConfig(file):
     config_file = configparser.ConfigParser(allow_no_value=True)
@@ -249,7 +245,7 @@ def _loadConfig(file):
 def _allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def _process_schemas_2():
+def _process_schemas():
     template = SchemaTemplate()
 
     tab_config = template.get_tabs_config()
@@ -279,7 +275,6 @@ def _process_schemas_2():
             for k in process.keys():
                 if process[k] == "required":
                     process[k] = "not required"
-        # all_properties.append(property)
 
         unordered[property["name"]] = property
 
@@ -319,51 +314,33 @@ def _process_schemas_2():
             else:
                 print(key + " is currently not a recorded property")
 
-
-
         return  all_properties
 
+def _extract_references(properties, name, title, schema):
 
-def _process_schemas(urls):
-    schema_properties = []
-    unordered = {}
-    process = ''
+    direct_properties = []
+    for property in properties:
+        prop = property.split('.')[1]
+        direct_properties.append(prop)
 
-    for url in urls:
-        schema = schema_loader.load_schema(url)
+    structure = {}
+    structure["title"] = title
+    structure["name"] = name
 
-        props = properties_builder.extract_properties(schema)
+    references = {}
 
-        if "stand_alone" in props:
-            standAlone = props["stand_alone"]
-            for sa in standAlone:
-                if sa["name"] not in unordered.keys():
-                    unordered[sa["name"]] = sa
+    for dp in direct_properties:
+        if dp not in EXCLUDED_PROPERTIES:
+            if schema[dp] and schema[dp]['value_type'] and schema[dp]['value_type'] == 'object' and dp not in references.keys():
+                if schema[dp]['required']:
+                    references[dp] = "required"
                 else:
-                    sa["name"] = props["name"] + '.'+ sa["name"]
-                    unordered[sa["name"]] = sa
-                DISPLAY_NAME_MAP[sa["name"]] = sa["title"]
-            del props["stand_alone"]
-        if props["name"] == "process":
-            process = props["properties"]
-            for k in process.keys():
-                if process[k] == "required":
-                    process[k] = "not required"
+                    references[dp] = "not required"
 
-        unordered[props["name"]] = props
+                print(dp + " is an object property")
 
-        DISPLAY_NAME_MAP[props["name"]] = props["title"]
-
-    if 'ordering' in CONFIG_FILE:
-        for key in CONFIG_FILE['ordering'].keys():
-            if key in unordered.keys():
-                if CONFIG_FILE['ordering'][key] == 'process' and process != '':
-                    unordered[key]["properties"].update(process)
-
-                schema_properties.append(unordered[key])
-            else:
-                print(key + " is currently not a recorded property")
-    return schema_properties
+    structure["references"] = references
+    return structure
 
 if __name__ == '__main__':
 
