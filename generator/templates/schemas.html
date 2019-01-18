@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+        {% extends "base.html" %}
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" href="{{url_for('static', filename = 'css/schemas.css')}}">
@@ -12,8 +12,7 @@
 <div class="container">
     <div class="starter-template">
         <h1>Spreadsheet Template Generator</h1>
-        <!--<div class="grid-container">-->
-            <!--<div class="grid-item">-->
+
                <form action="generate" method="POST" enctype="multipart/form-data">
                     <p class="lead">Select the schemas and properties you need</p>
 
@@ -38,13 +37,21 @@
                             {% endfor %}
                         </div>
                         <hr/>
-                    <div class="form-group">
-                         <label for="generateYaml">Generate YAML file</label>
-                    </div>
-                    <button type="submit" class="btn btn-primary" id="generateYaml">Generate</button>
+                        <div class="grid-container">
+                            <div class="grid-item">
+                                <div class="form-group">
+                                    <label for="generateYaml">Generate YAML file</label>
+                                </div>
+                                <button type="submit" name="submitButton" class="btn btn-primary" id="generateYaml" value="yaml">Generate</button>
+                            </div>
+                             <div class="grid-item">
+                                <div class="form-group">
+                                    <label for="generateSpreadsheet">Generate spreadsheet</label>
+                                </div>
+                                <button type="submit" name="submitButton" class="btn btn-primary" id="generateSpreadsheet" value="spreadsheet">Generate</button>
+                            </div>
+                        </div>
                </form>
-            <!--</div>-->
-        <!--</div>-->
         <hr/>
     </div>
 </div>
