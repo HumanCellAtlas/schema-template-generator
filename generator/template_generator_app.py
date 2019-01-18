@@ -2,18 +2,21 @@
 import sys
 
 import os
+import tempfile
+
 import yaml
-from flask import Flask, Markup, flash, request, render_template, redirect, url_for, make_response
+from flask import Flask, Markup, flash, request, render_template, redirect, url_for, make_response, send_file
 from flask_cors import CORS, cross_origin
 import logging
 import configparser
 import datetime
 
 from ingest.template.schema_template import SchemaTemplate
+from ingest.template.spreadsheet_builder import SpreadsheetBuilder
 
 EXCLUDED_PROPERTIES = ["describedBy", "schema_version", "schema_type", "provenance"]
 
-LATEST_SCHEMAS = "http://api.ingest.{env}.data.humancellatlas.org/schemas/search/latestSchemas"
+INGEST_API_URL = "http://api.ingest.{env}.data.humancellatlas.org"
 
 STATUS_LABEL = {
     'Valid': 'label-success',
@@ -45,6 +48,8 @@ logger = logging.getLogger(__name__)
 DISPLAY_NAME_MAP = {}
 
 CONFIG_FILE = ''
+
+SCHEMA_TEMPLATE = {}
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -97,9 +102,7 @@ def load_full_schemas():
 @app.route('/load_select', methods=['GET'])
 def selectSchemas():
 
-    template = SchemaTemplate()
-
-    tab_config = template.get_tabs_config()
+    tab_config = SCHEMA_TEMPLATE.get_tabs_config()
 
     unordered = {}
     for schema in tab_config.lookup('tabs'):
@@ -167,15 +170,43 @@ def generate_yaml():
 
     # print(yaml_json)
 
-    yaml_data = yaml.dump(yaml_json, default_flow_style=False)
+    if request.form['submitButton'] == 'yaml':
+        yaml_data = yaml.dump(yaml_json, default_flow_style=False)
+        now = datetime.datetime.now()
+        filename = "hca_yaml-" + now.strftime("%Y-%m-%dT%H-%M-%S") + ".yaml"
+        response = make_response(yaml_data)
+        response.headers.set('Content-Type', 'application/x-yaml')
+        response.headers.set('Content-Disposition', 'attachment',
+                             filename=filename)
+        return response
 
-    now = datetime.datetime.now()
-    filename = "hca_yaml-" + now.strftime("%Y-%m-%dT%H-%M-%S") + ".yaml"
-    response = make_response(yaml_data)
-    response.headers.set('Content-Type', 'application/x-yaml')
-    response.headers.set('Content-Disposition', 'attachment',
-                         filename=filename)
-    return response
+    elif request.form['submitButton'] == 'spreadsheet':
+
+        temp_yaml_filename = ""
+        with tempfile.NamedTemporaryFile('w', delete=False) as yaml_file:
+            yaml.dump(yaml_json, yaml_file)
+            temp_yaml_filename = yaml_file.name
+
+        with tempfile.NamedTemporaryFile('w+b', delete=False) as ssheet_file:
+            temp_filename = ssheet_file.name
+            spreadsheet_builder = SpreadsheetBuilder(temp_filename, True)
+            spreadsheet_builder.generate_workbook(tabs_template=temp_yaml_filename, schema_urls=SCHEMA_TEMPLATE.get_schema_urls())
+            spreadsheet_builder.save_workbook()
+
+            os.remove(temp_yaml_filename)
+            now = datetime.datetime.now()
+            export_filename = "hca_spreadsheet-" + now.strftime("%Y-%m-%dT%H-%M-%S") + ".xlsx"
+
+
+            # TODO Delete the file
+            response = make_response(ssheet_file.read())
+            response.headers.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response.headers.set('Content-Disposition', 'attachment',
+                                 filename=export_filename)
+            os.remove(temp_filename)
+            return response
+
+
 
     # TO DO switch previous section and remove below - temp setting to avoid 100s of downloads in testing
     # print(yaml_data)
@@ -246,9 +277,8 @@ def _allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def _process_schemas():
-    template = SchemaTemplate()
 
-    tab_config = template.get_tabs_config()
+    tab_config = SCHEMA_TEMPLATE.get_tabs_config()
 
     unordered = {}
     all_properties = []
@@ -265,7 +295,7 @@ def _process_schemas():
 
         for p in schema[schema_name]['columns']:
             if "provenance" not in p:
-                if template.lookup(p+".required"):
+                if SCHEMA_TEMPLATE.lookup(p+".required"):
                     property["properties"][p]="required"
                 else:
                     property["properties"][p]="not required"
@@ -342,6 +372,7 @@ def _extract_references(properties, name, title, schema):
     structure["references"] = references
     return structure
 
+
 if __name__ == '__main__':
 
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -350,6 +381,14 @@ if __name__ == '__main__':
     #     dir = dir.replace('/generator', '')
     # base_uri = dir + "/"
 
+
     CONFIG_FILE = _loadConfig('config.ini')
-    # print(CONFIG_FILE['system'])
+
+    env = ''
+    if 'system' in CONFIG_FILE and 'environment' in CONFIG_FILE['system']:
+        env = CONFIG_FILE['system']['environment']
+    api_url = INGEST_API_URL.replace("{env}", env)
+
+    SCHEMA_TEMPLATE = SchemaTemplate(ingest_api_url=api_url)
+
     app.run(host='0.0.0.0', port=5000)
