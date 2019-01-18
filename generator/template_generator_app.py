@@ -150,10 +150,11 @@ def generate_yaml():
         entry = {}
         tab = {}
 
-        if schema in DISPLAY_NAME_MAP:
+        if DISPLAY_NAME_MAP[schema]:
             tab["display_name"] = DISPLAY_NAME_MAP[schema]
         else:
             tab["display_name"] = schema
+
         columns = []
         for prop in selected_properties:
             t = prop.split(':')[0]
@@ -197,20 +198,12 @@ def generate_yaml():
             now = datetime.datetime.now()
             export_filename = "hca_spreadsheet-" + now.strftime("%Y-%m-%dT%H-%M-%S") + ".xlsx"
 
-
-            # TODO Delete the file
             response = make_response(ssheet_file.read())
             response.headers.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
             response.headers.set('Content-Disposition', 'attachment',
                                  filename=export_filename)
             os.remove(temp_filename)
             return response
-
-
-
-    # TO DO switch previous section and remove below - temp setting to avoid 100s of downloads in testing
-    # print(yaml_data)
-    # return redirect(url_for('index'))
 
 
 def _process_uploaded_file(file):
@@ -259,14 +252,6 @@ def _preselect_properties(schema_properties, selected_schemas, selected_referenc
     return schema_properties
 
 
-# def _getSchemaUrls():
-#     env = ''
-#     if 'system' in CONFIG_FILE and 'environment' in CONFIG_FILE['system']:
-#         env = CONFIG_FILE['system']['environment']
-#     # print("Environment is: " + env)
-#     schemas_url = LATEST_SCHEMAS.replace("{env}", env)
-#     urls = schema_loader.retrieve_latest_schemas(schemas_url, env+".data")
-#     return urls
 
 def _loadConfig(file):
     config_file = configparser.ConfigParser(allow_no_value=True)
