@@ -293,6 +293,25 @@ def _process_schemas():
 
         DISPLAY_NAME_MAP[property["name"]] = property["title"]
 
+    if 'biomaterial_linking' in CONFIG_FILE:
+        for key in CONFIG_FILE['biomaterial_linking'].keys():
+            if key in unordered.keys() and CONFIG_FILE['biomaterial_linking'][key] in unordered.keys():
+                linking_field = list(unordered[CONFIG_FILE['biomaterial_linking'][key]]['properties'].keys())[0]
+                unordered[key]['properties'][linking_field] = "not required"
+
+    if 'protocol_linking' in CONFIG_FILE:
+        for key in CONFIG_FILE['protocol_linking'].keys():
+            if key in unordered.keys():
+                protocols = []
+                if "," in CONFIG_FILE['protocol_linking'][key]:
+                    protocols = CONFIG_FILE['protocol_linking'][key].split(",")
+                else:
+                    protocols.append(CONFIG_FILE['protocol_linking'][key])
+
+                for prot in protocols:
+                    if prot in unordered.keys():
+                        linking_field = list(unordered[prot]['properties'].keys())[0]
+                        unordered[key]['properties'][linking_field] = "not required"
 
     if 'ordering' in CONFIG_FILE:
         for key in CONFIG_FILE['ordering'].keys():
@@ -327,7 +346,7 @@ def _process_schemas():
             else:
                 print(key + " is currently not a recorded property")
 
-        return  all_properties
+    return  all_properties
 
 def _extract_references(properties, name, title, schema):
 
