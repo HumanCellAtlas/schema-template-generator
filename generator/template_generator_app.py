@@ -277,12 +277,20 @@ def _process_schemas():
             property["properties"] = {}
 
         for p in schema[schema_name]['columns']:
-            if "provenance" not in p:
+            if len(p.split(".")) > 2:
+                parent = ".".join(p.split(".")[:-1])
+                if SCHEMA_TEMPLATE.lookup(parent+".required"):
+                    if SCHEMA_TEMPLATE.lookup(p + ".required"):
+                        property["properties"][p] = "required"
+                    else:
+                        property["properties"][p] = "not required"
+                else:
+                    property["properties"][p]="not required"
+            else:
                 if SCHEMA_TEMPLATE.lookup(p+".required"):
                     property["properties"][p]="required"
                 else:
                     property["properties"][p]="not required"
-
         if property["name"] == "process":
             process = property["properties"]
             for k in process.keys():
