@@ -66,12 +66,6 @@ def upload_file():
 
         content = yaml.load(file.stream.read())
 
-        # filename = secure_filename(file.filename)
-        # directory = os.path.abspath(app.config['UPLOAD_FOLDER'])
-        # if not os.path.exists(directory):
-        #     os.makedirs(app.config['UPLOAD_FOLDER'])
-        # file.save(os.path.join(directory, filename))
-
         all_properties = _process_schemas()
 
         selected_schemas, selected_properties = _process_uploaded_file(content['tabs'])
@@ -94,6 +88,11 @@ def load_full_schemas():
     selected_references = []
     if 'reference' in response:
         selected_references = response.getlist('reference')
+        for ref in selected_references:
+            if ref.split(":")[1] in DISPLAY_NAME_MAP:
+                if ref.split(":")[0] in selected_schemas:
+                    selected_schemas.append(ref.split(":")[1])
+                    # selected_references.remove(ref)
 
     schema_properties = _preselect_properties(all_properties, selected_schemas, selected_references, None)
 
@@ -234,7 +233,7 @@ def _preselect_properties(schema_properties, selected_schemas, selected_referenc
                 for ref in selected_references:
                     t = ref.split(':')[0]
                     val = ref.split(':')[1]
-                    if schema["name"] == t:
+                    if schema["name"] == t or schema["name"] == val:
                         for prop in properties.keys():
                             if (val == prop.split('.')[1] or (
                                     len(prop.split('.')) == 2 and prop.split('.')[0] != 'process')) and properties[
@@ -279,6 +278,11 @@ def _process_schemas():
         for p in schema[schema_name]['columns']:
             if len(p.split(".")) > 2:
                 parent = ".".join(p.split(".")[:-1])
+
+                # special case for modules with ontology imports where the field is required if the module is used, eg donor.timecourse.unit.text
+                if len(p.split(".")) == 4:
+                    if SCHEMA_TEMPLATE.lookup(parent+".required"):
+                        parent = ".".join(parent.split(".")[:-1])
                 if SCHEMA_TEMPLATE.lookup(parent+".required"):
                     if SCHEMA_TEMPLATE.lookup(p + ".required"):
                         property["properties"][p] = "required"
