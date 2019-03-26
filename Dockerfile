@@ -1,4 +1,4 @@
-FROM frolvlad/alpine-python3
+FROM python:3
 MAINTAINER Dani Welter "dwelter@ebi.ac.uk"
 
 RUN mkdir /app
