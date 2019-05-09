@@ -41,13 +41,32 @@
             </div>
              <div class="grid-item">
                <form  action="upload" method="POST" enctype="multipart/form-data">
-                    <div class="form-group">
-                       <label for="yamlUpload" class="btn btn-info btn-file">Upload a YAML file
-                          <input type="file" accept=".yaml,.yml" name="yamlfile" id="yamlUpload" style="display: none;">
+                    <!--<div class="form-group">-->
+                       <!--<label for="yamlUpload" class="btn btn-info btn-file">Upload a YAML file-->
+                          <!--<input type="file" accept=".yaml,.yml" name="yamlfile" id="yamlUpload" style="display: none;">-->
 
-                       </label>
+                       <!--</label>-->
+                    <!--</div>-->
+                   <div class="custom-file">
+                        <input type="file" accept=".yaml,.yml" name="yamlfile" class="custom-file-input" id="yamlUpload">
+                        <!--<label class="custom-file-label" for="yamlUpload">Choose YAML file</label>-->
                     </div>
                     <button type="submit" class="btn btn-primary" id="uploadYaml">Upload YAML</button>
+               </form>
+            </div>
+            <div class="grid-item">
+               <form  action="upload_xls" method="POST" enctype="multipart/form-data">
+                    <!--<div class="form-group">-->
+                       <!--<label for="yamlUpload" class="btn btn-info btn-file">Upload a YAML file-->
+                          <!--<input type="file" accept=".yaml,.yml" name="yamlfile" id="yamlUpload" style="display: none;">-->
+
+                       <!--</label>-->
+                    <!--</div>-->
+                   <div class="custom-file">
+                        <input type="file" accept=".xlsx,.xls" name="xlsfile" class="custom-file-input" id="spreadsheetUpload">
+                        <!--<label class="custom-file-label" for="yamlUpload">Choose YAML file</label>-->
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="uploadSpreadsheet">Upload spreadsheet for migration</button>
                </form>
             </div>
         </div>

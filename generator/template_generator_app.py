@@ -26,7 +26,7 @@ STATUS_LABEL = {
     'Complete': 'label-default'
 }
 
-ALLOWED_EXTENSIONS = set(['yaml', 'yml'])
+ALLOWED_EXTENSIONS = set(['yaml', 'yml', 'xls', 'xlsx'])
 UPLOAD_FOLDER = 'tmp/yaml_file'
 
 DEFAULT_STATUS_LABEL = 'label-warning'
@@ -64,7 +64,7 @@ def upload_file():
         return redirect(request.url)
     if file and _allowed_file(file.filename):
 
-        content = yaml.load(file.stream.read())
+        content = yaml.load(file.stream.read(), Loader=yaml.FullLoader)
 
         all_properties = _process_schemas()
 
@@ -203,6 +203,31 @@ def generate_yaml():
                                  filename=export_filename)
             os.remove(temp_filename)
             return response
+
+
+@app.route('/upload_xls', methods=['POST'])
+def upload_spreadsheet():
+
+    if 'xlsfile' not in request.files:
+        flash('No file part')
+        return redirect(request.url)
+    file = request.files['xlsfile']
+
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(request.url)
+    if file and _allowed_file(file.filename):
+
+        # content = yaml.load(file.stream.read())
+
+        # all_properties = _process_schemas()
+        #
+        # selected_schemas, selected_properties = _process_uploaded_file(content['tabs'])
+        #
+        # schema_properties = _preselect_properties(all_properties, selected_schemas, None, selected_properties)
+
+        # return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
+        return render_template('index.html', helper=HTML_HELPER)
 
 
 def _process_uploaded_file(file):
@@ -403,6 +428,6 @@ if __name__ == '__main__':
         env = CONFIG_FILE['system']['environment']
     api_url = INGEST_API_URL.replace("{env}", env)
 
-    SCHEMA_TEMPLATE = SchemaTemplate(ingest_api_url=api_url)
+    SCHEMA_TEMPLATE = SchemaTemplate(ingest_api_url=api_url,migrations_url='https://schema.dev.data.humancellatlas.org/property_migrations')
 
     app.run(host='0.0.0.0', port=5000)
