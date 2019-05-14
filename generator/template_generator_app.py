@@ -10,7 +10,7 @@ from flask_cors import CORS, cross_origin
 import logging
 import configparser
 import datetime
-
+from openpyxl import load_workbook
 from ingest.template.schema_template import SchemaTemplate
 from ingest.template.spreadsheet_builder import SpreadsheetBuilder
 
@@ -217,6 +217,9 @@ def upload_spreadsheet():
         flash('No selected file')
         return redirect(request.url)
     if file and _allowed_file(file.filename):
+        wb = load_workbook(filename=file.filename)
+        sheet_ranges = wb['range names']
+        print(sheet_ranges['D18'].value)
 
         # content = yaml.load(file.stream.read())
 
