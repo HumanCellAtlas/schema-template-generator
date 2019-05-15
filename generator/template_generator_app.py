@@ -190,7 +190,8 @@ def generate_yaml():
         with tempfile.NamedTemporaryFile('w+b', delete=False) as ssheet_file:
             temp_filename = ssheet_file.name
             spreadsheet_builder = SpreadsheetBuilder(temp_filename, True)
-            spreadsheet_builder.generate_workbook(tabs_template=temp_yaml_filename, schema_urls=SCHEMA_TEMPLATE.get_schema_urls())
+            # TO DO currently automatically building WITH schemas tab - this should be customisable
+            spreadsheet_builder.generate_workbook(tabs_template=temp_yaml_filename, schema_urls=SCHEMA_TEMPLATE.get_schema_urls(), include_schemas_tab=True)
             spreadsheet_builder.save_workbook()
 
             os.remove(temp_yaml_filename)
@@ -208,6 +209,8 @@ def generate_yaml():
 @app.route('/upload_xls', methods=['POST'])
 def upload_spreadsheet():
 
+    response = request.form
+
     if 'xlsfile' not in request.files:
         flash('No file part')
         return redirect(request.url)
@@ -217,20 +220,62 @@ def upload_spreadsheet():
         flash('No selected file')
         return redirect(request.url)
     if file and _allowed_file(file.filename):
-        wb = load_workbook(filename=file.filename)
-        sheet_ranges = wb['range names']
-        print(sheet_ranges['D18'].value)
+        # TO DO this is a hack to get past the 'No such file or directory' error but relies on directory being present - FIX!
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
+        wb = load_workbook(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
 
-        # content = yaml.load(file.stream.read())
+        if 'Schemas' in wb.sheetnames:
+            schemas = wb['Schemas']
+        elif 'schemas' in wb.sheetnames:
+            schemas = wb['schemas']
+        else:
+            flash('Cannot migrate a spreadsheet without a Schemas tab')
+            return redirect(request.url)
 
-        # all_properties = _process_schemas()
-        #
-        # selected_schemas, selected_properties = _process_uploaded_file(content['tabs'])
-        #
-        # schema_properties = _preselect_properties(all_properties, selected_schemas, None, selected_properties)
+        latest_schemas = SCHEMA_TEMPLATE.get_schema_urls()
+
+        done = False
+        for row in schemas.iter_rows(min_row=2, max_col=1, max_row=100):
+            if not done:
+                for cell in row:
+                    if cell.value is not None:
+                        if cell.value in latest_schemas:
+                            print(cell.value + ' is in the list of latest schemas')
+                        else:
+                            print(cell.value + ' is an outdated schema')
+                            _migrate_schema(wb, cell.value)
+
+                            schema_name = cell.value.split('/')[-1]
+
+                            for schema in latest_schemas:
+                                if schema_name == schema.split('/')[-1]:
+                                    cell.value = schema
+
+                    else:
+                        done = True
+            else:
+                break
+        print("All schemas processed")
+
+
+        with tempfile.NamedTemporaryFile('w+b', delete=False) as ssheet_file:
+            temp_filename = ssheet_file.name
+
+            now = datetime.datetime.now()
+            export_filename = "hca_spreadsheet-" + now.strftime("%Y-%m-%dT%H-%M-%S") + "_migrated.xlsx"
+            wb.save(temp_filename)
+            wb.close()
+
+            response = make_response(ssheet_file.read())
+            response.headers.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response.headers.set('Content-Disposition', 'attachment',
+                                 filename=export_filename)
+            os.remove(temp_filename)
+            return response
+
 
         # return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
-        return render_template('index.html', helper=HTML_HELPER)
+        # return render_template('index.html', helper=HTML_HELPER)
 
 
 def _process_uploaded_file(file):
@@ -413,6 +458,53 @@ def _extract_references(properties, name, title, schema):
 
     structure["references"] = references
     return structure
+
+
+def _migrate_schema(workbook, schema_url):
+    schema_key = schema_url.split('/')[-1]
+    schema_version = schema_url.split('/')[-2]
+
+    linked_tabs = []
+
+    if 'ordering' in CONFIG_FILE:
+        if 'ordering' in CONFIG_FILE:
+            for key in CONFIG_FILE['ordering'].keys():
+                if CONFIG_FILE['ordering'][key] == schema_key:
+                    linked_tabs.append(key)
+
+
+    tab_config = SCHEMA_TEMPLATE.get_tabs_config()
+
+    for schema in tab_config.lookup('tabs'):
+        if schema_key == list(schema.keys())[0]:
+            tab_name = schema[schema_key]['display_name']
+
+            _update_tab(workbook, tab_name, schema_version)
+
+            if linked_tabs:
+                for tab in linked_tabs:
+                    linked_tab_name = tab_config.lookup('meta_data_properties')[schema_key][tab]['user_friendly']
+                    _update_tab(workbook, linked_tab_name, schema_version)
+
+
+def _update_tab(workbook, tab_name, schema_version):
+    current_tab = workbook[tab_name]
+
+    for col in current_tab.iter_cols(min_row=4, max_row=4):
+        for cell in col:
+            print(cell.value)
+
+            if cell.value is not None:
+                new_property = SCHEMA_TEMPLATE.lookup(cell.value, schema_version)
+
+                if 'replaced_by' in new_property:
+                    print(new_property)
+                    cell.value = new_property['replaced_by']
+
+
+
+
+
 
 
 if __name__ == '__main__':
