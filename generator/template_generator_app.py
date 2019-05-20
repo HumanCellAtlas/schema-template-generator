@@ -464,6 +464,9 @@ def _migrate_schema(workbook, schema_url):
     schema_key = schema_url.split('/')[-1]
     schema_version = schema_url.split('/')[-2]
 
+    if schema_key == 'process':
+        _migrate_process_schema(workbook, schema_key, schema_version)
+
     linked_tabs = []
 
     if 'ordering' in CONFIG_FILE:
@@ -479,22 +482,22 @@ def _migrate_schema(workbook, schema_url):
         if schema_key == list(schema.keys())[0]:
             tab_name = schema[schema_key]['display_name']
 
-            _update_tab(workbook, tab_name, schema_version)
+            _update_tab(workbook, schema_key, tab_name, schema_version)
 
             if linked_tabs:
                 for tab in linked_tabs:
                     linked_tab_name = tab_config.lookup('meta_data_properties')[schema_key][tab]['user_friendly']
-                    _update_tab(workbook, linked_tab_name, schema_version)
+                    _update_tab(workbook, schema_key, linked_tab_name, schema_version)
 
 
-def _update_tab(workbook, tab_name, schema_version):
+def _update_tab(workbook, schema_name, tab_name, schema_version):
     current_tab = workbook[tab_name]
 
     for col in current_tab.iter_cols(min_row=4, max_row=4):
         for cell in col:
             print(cell.value)
 
-            if cell.value is not None:
+            if cell.value is not None and schema_name in cell.value:
                 new_property = SCHEMA_TEMPLATE.lookup(cell.value, schema_version)
 
                 if 'replaced_by' in new_property:
@@ -502,9 +505,23 @@ def _update_tab(workbook, tab_name, schema_version):
                     cell.value = new_property['replaced_by']
 
 
+def _migrate_process_schema(workbook, schema, schema_version):
 
+    process_tabs = []
 
+    if 'ordering' in CONFIG_FILE:
+        if 'ordering' in CONFIG_FILE:
+            for key in CONFIG_FILE['ordering'].keys():
+                if CONFIG_FILE['ordering'][key] == schema:
+                    process_tabs.append(key)
 
+    tab_config = SCHEMA_TEMPLATE.get_tabs_config()
+
+    for schema in tab_config.lookup('tabs'):
+        if list(schema.keys())[0] in process_tabs:
+            tab_name = schema[list(schema.keys())[0]]['display_name']
+
+            _update_tab(workbook, schema, tab_name, schema_version)
 
 
 if __name__ == '__main__':
