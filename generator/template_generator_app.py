@@ -467,27 +467,28 @@ def _migrate_schema(workbook, schema_url):
     if schema_key == 'process':
         _migrate_process_schema(workbook, schema_key, schema_version)
 
-    linked_tabs = []
+    else:
+        linked_tabs = []
 
-    if 'ordering' in CONFIG_FILE:
         if 'ordering' in CONFIG_FILE:
-            for key in CONFIG_FILE['ordering'].keys():
-                if CONFIG_FILE['ordering'][key] == schema_key:
-                    linked_tabs.append(key)
+            if 'ordering' in CONFIG_FILE:
+                for key in CONFIG_FILE['ordering'].keys():
+                    if CONFIG_FILE['ordering'][key] == schema_key:
+                        linked_tabs.append(key)
 
 
-    tab_config = SCHEMA_TEMPLATE.get_tabs_config()
+        tab_config = SCHEMA_TEMPLATE.get_tabs_config()
 
-    for schema in tab_config.lookup('tabs'):
-        if schema_key == list(schema.keys())[0]:
-            tab_name = schema[schema_key]['display_name']
+        for schema in tab_config.lookup('tabs'):
+            if schema_key == list(schema.keys())[0]:
+                tab_name = schema[schema_key]['display_name']
 
-            _update_tab(workbook, schema_key, tab_name, schema_version)
+                _update_tab(workbook, schema_key, tab_name, schema_version)
 
-            if linked_tabs:
-                for tab in linked_tabs:
-                    linked_tab_name = tab_config.lookup('meta_data_properties')[schema_key][tab]['user_friendly']
-                    _update_tab(workbook, schema_key, linked_tab_name, schema_version)
+                if linked_tabs:
+                    for tab in linked_tabs:
+                        linked_tab_name = tab_config.lookup('meta_data_properties')[schema_key][tab]['user_friendly']
+                        _update_tab(workbook, schema_key, linked_tab_name, schema_version)
 
 
 def _update_tab(workbook, schema_name, tab_name, schema_version):
@@ -519,9 +520,10 @@ def _migrate_process_schema(workbook, schema, schema_version):
 
     for schema in tab_config.lookup('tabs'):
         if list(schema.keys())[0] in process_tabs:
+            schema_name = list(schema.keys())[0]
             tab_name = schema[list(schema.keys())[0]]['display_name']
 
-            _update_tab(workbook, schema, tab_name, schema_version)
+            _update_tab(workbook, 'process', tab_name, schema_version)
 
 
 if __name__ == '__main__':
