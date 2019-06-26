@@ -11,7 +11,7 @@ import logging
 import configparser
 import datetime
 from openpyxl import load_workbook
-from ingest.template.schema_template import SchemaTemplate
+from ingest.template.schema_template import SchemaTemplate, UnknownKeyException
 from ingest.template.spreadsheet_builder import SpreadsheetBuilder
 
 EXCLUDED_PROPERTIES = ["describedBy", "schema_version", "schema_type", "provenance"]
@@ -494,16 +494,104 @@ def _migrate_schema(workbook, schema_url):
 def _update_tab(workbook, schema_name, tab_name, schema_version):
     current_tab = workbook[tab_name]
 
+    available_columns = []
+    last_index = 1
     for col in current_tab.iter_cols(min_row=4, max_row=4):
         for cell in col:
-            print(cell.value)
+            # print(cell.value)
+            last_index += 1
 
             if cell.value is not None and schema_name in cell.value:
-                new_property = SCHEMA_TEMPLATE.lookup(cell.value, schema_version)
+                try:
+                    new_property = SCHEMA_TEMPLATE.lookup(cell.value)
+                    _update_user_properties(cell.value, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(cell.value + ".required"))
+                    available_columns.append(new_property)
 
-                if 'replaced_by' in new_property:
-                    print(new_property)
-                    cell.value = new_property['replaced_by']
+                except UnknownKeyException:
+
+                    try:
+                        new_property = SCHEMA_TEMPLATE.replaced_by_latest(cell.value)
+                        if new_property is not "":
+                            # print(new_property)
+                            cell.value = new_property
+                            _update_user_properties(new_property, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(new_property + ".required"))
+                            available_columns.append(new_property)
+
+                    except UnknownKeyException:
+                        current_tab.delete_cols(cell.col_idx, 1)
+                        last_index -=1
+                        available_columns.pop()
+
+
+
+    # TO DO: Dealing with new required properties - this code currently doesn't work as it adds dozens of duplicate properties!
+    #
+    # tab_config = SCHEMA_TEMPLATE.get_tabs_config()
+    #
+    # for schema in tab_config.lookup('tabs'):
+    #     if list(schema.keys())[0] == schema_name:
+    #         latest_columns = schema[schema_name]['columns']
+    #
+    #         for column in latest_columns:
+    #             if column not in available_columns:
+    #                 if SCHEMA_TEMPLATE.lookup(column + ".required"):
+    #                     print("Added column " + column + " to schema " + schema_name)
+    #                     current_tab.cell(row=4, column=last_index, value=column)
+    #                     _update_user_properties(column, last_index, current_tab)
+    #                     last_index +=1
+
+
+def _update_user_properties(col_name, col_index, current_tab, required):
+    if col_name.split(".")[-1] == "text":
+        uf = _get_value_for_column(col_name.replace('.text', ''), "user_friendly").upper()
+    else:
+        uf = _get_value_for_column(col_name, "user_friendly").upper()
+    if col_name.split(".")[-1] == "text":
+        desc = _get_value_for_column(col_name.replace('.text', ''), "description")
+        if desc == "":
+            desc = _get_value_for_column(col_name, "description")
+    else:
+        desc = _get_value_for_column(col_name, "description")
+    if col_name.split(".")[-1] == "text":
+        required = bool(_get_value_for_column(col_name.replace('.text', ''), "required"))
+    else:
+        required = bool(_get_value_for_column(col_name, "required"))
+    if col_name.split(".")[-1] == "text":
+        example_text = _get_value_for_column(col_name.replace('.text', ''), "example")
+        if example_text == "":
+            example_text = _get_value_for_column(col_name, "example")
+    else:
+        example_text = _get_value_for_column(col_name, "example")
+    if col_name.split(".")[-1] == "text":
+        guidelines = _get_value_for_column(col_name.replace('.text', ''), "guidelines")
+        if guidelines == "":
+            guidelines = _get_value_for_column(col_name, "guidelines")
+    else:
+        guidelines = _get_value_for_column(col_name, "guidelines")
+
+    if required:
+        uf = uf + " (Required)"
+
+    current_tab.cell(row=1, column=col_index, value=uf)
+    # set the description
+    current_tab.cell(row=2, column=col_index, value=desc)
+
+    # write example
+    if example_text:
+    # print("Example " + example_text)
+        current_tab.cell(row=3, column=col_index, value=guidelines + ' For example: ' + example_text)
+    else:
+    # print("Guideline " + guidelines)
+        current_tab.cell(row=3, column=col_index, value=guidelines)
+
+def _get_value_for_column(col_name, property):
+    try:
+        uf = str(SCHEMA_TEMPLATE.lookup(col_name + "." + property)) if SCHEMA_TEMPLATE.lookup(col_name + "." + property) else ""
+        return uf
+    except Exception:
+        print("No property " + property + " for " + col_name)
+        return ""
+
 
 
 def _migrate_process_schema(workbook, schema, schema_version):

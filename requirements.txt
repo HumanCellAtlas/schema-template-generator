@@ -10,3 +10,4 @@ XlsxWriter==0.9.8
 PyYAML==4.2b1
 configparser==3.5.0
 hca-ingest
+openpyxl==2.6.2
