@@ -227,32 +227,50 @@ def upload_spreadsheet():
         elif 'schemas' in wb.sheetnames:
             schemas = wb['schemas']
         else:
-            flash('Cannot migrate a spreadsheet without a Schemas tab')
-            return redirect(request.url)
+            # flash('Cannot migrate a spreadsheet without a Schemas tab')
+            # return redirect(request.url)
+            schemas = None
 
         latest_schemas = SCHEMA_TEMPLATE.get_schema_urls()
 
-        done = False
-        for row in schemas.iter_rows(min_row=2, max_col=1, max_row=100):
-            if not done:
-                for cell in row:
-                    if cell.value is not None:
-                        if cell.value in latest_schemas:
-                            print(cell.value + ' is in the list of latest schemas')
-                        else:
-                            print(cell.value + ' is an outdated schema')
-                            _migrate_schema(wb, cell.value)
+        # done = False
+        # for row in schemas.iter_rows(min_row=2, max_col=1, max_row=100):
+        #     if not done:
+        #         for cell in row:
+        #
+        #             if cell.value is not None:
+        #                 if cell.value in latest_schemas:
+        #                     print(cell.value + ' is in the list of latest schemas')
+        #                 else:
+        #                     print(cell.value + ' is an outdated schema')
+        #                     _migrate_schema(wb, cell.value)
+        #
+        #                     schema_name = cell.value.split('/')[-1]
+        #
+        #                     for schema in latest_schemas:
+        #                         if schema_name == schema.split('/')[-1]:
+        #                             cell.value = schema
+        #
+        #             else:
+        #                 done = True
+        #     else:
+        #         break
 
-                            schema_name = cell.value.split('/')[-1]
+        tab_config = SCHEMA_TEMPLATE.get_tabs_config()
+        tabs = wb.sheetnames
 
-                            for schema in latest_schemas:
-                                if schema_name == schema.split('/')[-1]:
-                                    cell.value = schema
+        for schema in tab_config.lookup('tabs'):
+            tab_name = schema[list(schema.keys())[0]]['display_name']
 
-                    else:
-                        done = True
-            else:
-                break
+            if tab_name in tabs:
+                schema_name = list(schema.keys())[0]
+
+                for schema in latest_schemas:
+                    if schema_name in schema:
+                        print("Migrating " + tab_name)
+                        _migrate_schema(wb, schema)
+
+
         print("All schemas processed")
 
 
@@ -541,9 +559,10 @@ def _update_tab(workbook, schema_name, tab_name, schema_version):
                             available_columns.append(new_property)
 
                     except UnknownKeyException:
-                        current_tab.delete_cols(cell.col_idx, 1)
-                        last_index -=1
-                        available_columns.pop()
+                        if SCHEMA_TEMPLATE._lookup_migration_version(cell.value) is not None:
+                            current_tab.delete_cols(cell.col_idx, 1)
+                            last_index -=1
+                            available_columns.pop()
 
 
 
