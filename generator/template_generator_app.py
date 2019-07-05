@@ -74,6 +74,24 @@ def upload_file():
 
         return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
 
+@app.route('/upload_yaml_to_xls', methods=['POST'])
+def upload_generate():
+
+    if 'yamlfile' not in request.files:
+        flash('No file part')
+        return redirect(request.url)
+    file = request.files['yamlfile']
+
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(request.url)
+    if file and _allowed_file(file.filename):
+
+        yaml_json = yaml.load(file.stream.read(), Loader=yaml.FullLoader)
+        response = _generate_spreadsheet(yaml_json)
+        return response
+
+
 
 @app.route('/load_all', methods=['GET', 'POST'])
 def load_full_schemas():
@@ -182,27 +200,7 @@ def generate_yaml():
 
     elif request.form['submitButton'] == 'spreadsheet':
 
-        temp_yaml_filename = ""
-        with tempfile.NamedTemporaryFile('w', delete=False) as yaml_file:
-            yaml.dump(yaml_json, yaml_file)
-            temp_yaml_filename = yaml_file.name
-
-        with tempfile.NamedTemporaryFile('w+b', delete=False) as ssheet_file:
-            temp_filename = ssheet_file.name
-            spreadsheet_builder = SpreadsheetBuilder(temp_filename, True)
-            # TO DO currently automatically building WITH schemas tab - this should be customisable
-            spreadsheet_builder.generate_workbook(tabs_template=temp_yaml_filename, schema_urls=SCHEMA_TEMPLATE.get_schema_urls(), include_schemas_tab=True)
-            spreadsheet_builder.save_workbook()
-
-            os.remove(temp_yaml_filename)
-            now = datetime.datetime.now()
-            export_filename = "hca_spreadsheet-" + now.strftime("%Y-%m-%dT%H-%M-%S") + ".xlsx"
-
-            response = make_response(ssheet_file.read())
-            response.headers.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            response.headers.set('Content-Disposition', 'attachment',
-                                 filename=export_filename)
-            os.remove(temp_filename)
+            response = _generate_spreadsheet(yaml_json)
             return response
 
 
@@ -277,6 +275,31 @@ def upload_spreadsheet():
         # return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
         # return render_template('index.html', helper=HTML_HELPER)
 
+
+def _generate_spreadsheet(yaml_json):
+    temp_yaml_filename = ""
+    with tempfile.NamedTemporaryFile('w', delete=False) as yaml_file:
+        yaml.dump(yaml_json, yaml_file)
+        temp_yaml_filename = yaml_file.name
+
+    with tempfile.NamedTemporaryFile('w+b', delete=False) as ssheet_file:
+        temp_filename = ssheet_file.name
+        spreadsheet_builder = SpreadsheetBuilder(temp_filename, True)
+        # TO DO currently automatically building WITH schemas tab - this should be customisable
+        spreadsheet_builder.generate_workbook(tabs_template=temp_yaml_filename,
+                                              schema_urls=SCHEMA_TEMPLATE.get_schema_urls(), include_schemas_tab=True)
+        spreadsheet_builder.save_workbook()
+
+        os.remove(temp_yaml_filename)
+        now = datetime.datetime.now()
+        export_filename = "hca_spreadsheet-" + now.strftime("%Y-%m-%dT%H-%M-%S") + ".xlsx"
+
+        response = make_response(ssheet_file.read())
+        response.headers.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response.headers.set('Content-Disposition', 'attachment',
+                             filename=export_filename)
+        os.remove(temp_filename)
+        return response
 
 def _process_uploaded_file(file):
     selected_schemas = []
@@ -410,7 +433,7 @@ def _process_schemas():
                 if parent in unordered.keys():
                     new_property = {}
 
-                    new_property["title"] = tab_config.lookup('meta_data_properties')[parent][key]['user_friendly']
+                    new_property["title"] = tab_config.lookup('meta_data_properties')[parent]['user_friendly'] + " - " + tab_config.lookup('meta_data_properties')[parent][key]['user_friendly']
                     new_property["name"] = key
                     new_property["select"] = False
                     if "properties" not in new_property:
