@@ -1,10 +1,10 @@
-[![Docker Repository on Quay](https://quay.io/repository/humancellatlas/ingest-demo/status "Docker Repository on Quay")](https://quay.io/repository/humancellatlas/ingest-demo)
+[![Docker Repository on Quay](https://quay.io/repository/humancellatlas/schema-template-generator/status "Docker Repository on Quay")](https://quay.io/repository/humancellatlas/schema-template-generator)
 
-# HCA generator and ingestion service demo
+# HCA spreadsheet template generator
 
-Scripts for submitting spreadsheets of experimental metadata to the HCA.
+The HCA spreadsheet template generator is an interactive UI to generate HCA metadata spreadsheets and YAML files based on the latest set of metadata schemas.
 
-To run scripts locally you'll need python 3 and all the dependencies in [requirements.txt](requirements.txt).
+To run the service locally you'll need python 3 and all the dependencies in [requirements.txt](requirements.txt).
 
 
 ```

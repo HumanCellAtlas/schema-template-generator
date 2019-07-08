@@ -451,7 +451,10 @@ def _process_schemas():
                 if parent in unordered.keys():
                     new_property = {}
 
-                    new_property["title"] = tab_config.lookup('meta_data_properties')[parent]['user_friendly'] + " - " + tab_config.lookup('meta_data_properties')[parent][key]['user_friendly']
+                    new_property["title"] = tab_config.lookup('meta_data_properties')[parent][key]['user_friendly']
+
+                    if len(DISPLAY_NAME_MAP[parent] + " - " + new_property["title"]) < 32:
+                        new_property["title"] = DISPLAY_NAME_MAP[parent] + " - " + new_property["title"]
                     new_property["name"] = key
                     new_property["select"] = False
                     if "properties" not in new_property:
@@ -472,7 +475,7 @@ def _process_schemas():
             else:
                 print(key + " is currently not a recorded property")
 
-    return  all_properties
+    return all_properties
 
 def _extract_references(properties, name, title, schema):
 
