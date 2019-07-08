@@ -10,8 +10,8 @@ from flask_cors import CORS, cross_origin
 import logging
 import configparser
 import datetime
-
-from ingest.template.schema_template import SchemaTemplate
+from openpyxl import load_workbook
+from ingest.template.schema_template import SchemaTemplate, UnknownKeyException
 from ingest.template.spreadsheet_builder import SpreadsheetBuilder
 
 EXCLUDED_PROPERTIES = ["describedBy", "schema_version", "schema_type", "provenance"]
@@ -26,7 +26,7 @@ STATUS_LABEL = {
     'Complete': 'label-default'
 }
 
-ALLOWED_EXTENSIONS = set(['yaml', 'yml'])
+ALLOWED_EXTENSIONS = set(['yaml', 'yml', 'xls', 'xlsx'])
 UPLOAD_FOLDER = 'tmp/yaml_file'
 
 DEFAULT_STATUS_LABEL = 'label-warning'
@@ -64,7 +64,7 @@ def upload_file():
         return redirect(request.url)
     if file and _allowed_file(file.filename):
 
-        content = yaml.load(file.stream.read())
+        content = yaml.load(file.stream.read(), Loader=yaml.FullLoader)
 
         all_properties = _process_schemas()
 
@@ -190,7 +190,8 @@ def generate_yaml():
         with tempfile.NamedTemporaryFile('w+b', delete=False) as ssheet_file:
             temp_filename = ssheet_file.name
             spreadsheet_builder = SpreadsheetBuilder(temp_filename, True)
-            spreadsheet_builder.generate_workbook(tabs_template=temp_yaml_filename, schema_urls=SCHEMA_TEMPLATE.get_schema_urls())
+            # TO DO currently automatically building WITH schemas tab - this should be customisable
+            spreadsheet_builder.generate_workbook(tabs_template=temp_yaml_filename, schema_urls=SCHEMA_TEMPLATE.get_schema_urls(), include_schemas_tab=True)
             spreadsheet_builder.save_workbook()
 
             os.remove(temp_yaml_filename)
@@ -203,6 +204,78 @@ def generate_yaml():
                                  filename=export_filename)
             os.remove(temp_filename)
             return response
+
+
+@app.route('/upload_xls', methods=['POST'])
+def upload_spreadsheet():
+
+    response = request.form
+
+    if 'xlsfile' not in request.files:
+        flash('No file part')
+        return redirect(request.url)
+    file = request.files['xlsfile']
+
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(request.url)
+    if file and _allowed_file(file.filename):
+        # TO DO this is a hack to get past the 'No such file or directory' error but relies on directory being present - FIX!
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
+        wb = load_workbook(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
+
+        if 'Schemas' in wb.sheetnames:
+            schemas = wb['Schemas']
+        elif 'schemas' in wb.sheetnames:
+            schemas = wb['schemas']
+        else:
+            flash('Cannot migrate a spreadsheet without a Schemas tab')
+            return redirect(request.url)
+
+        latest_schemas = SCHEMA_TEMPLATE.get_schema_urls()
+
+        done = False
+        for row in schemas.iter_rows(min_row=2, max_col=1, max_row=100):
+            if not done:
+                for cell in row:
+                    if cell.value is not None:
+                        if cell.value in latest_schemas:
+                            print(cell.value + ' is in the list of latest schemas')
+                        else:
+                            print(cell.value + ' is an outdated schema')
+                            _migrate_schema(wb, cell.value)
+
+                            schema_name = cell.value.split('/')[-1]
+
+                            for schema in latest_schemas:
+                                if schema_name == schema.split('/')[-1]:
+                                    cell.value = schema
+
+                    else:
+                        done = True
+            else:
+                break
+        print("All schemas processed")
+
+
+        with tempfile.NamedTemporaryFile('w+b', delete=False) as ssheet_file:
+            temp_filename = ssheet_file.name
+
+            now = datetime.datetime.now()
+            export_filename = "hca_spreadsheet-" + now.strftime("%Y-%m-%dT%H-%M-%S") + "_migrated.xlsx"
+            wb.save(temp_filename)
+            wb.close()
+
+            response = make_response(ssheet_file.read())
+            response.headers.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response.headers.set('Content-Disposition', 'attachment',
+                                 filename=export_filename)
+            os.remove(temp_filename)
+            return response
+
+
+        # return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
+        # return render_template('index.html', helper=HTML_HELPER)
 
 
 def _process_uploaded_file(file):
@@ -387,6 +460,160 @@ def _extract_references(properties, name, title, schema):
     return structure
 
 
+def _migrate_schema(workbook, schema_url):
+    schema_key = schema_url.split('/')[-1]
+    schema_version = schema_url.split('/')[-2]
+
+    if schema_key == 'process':
+        _migrate_process_schema(workbook, schema_key, schema_version)
+
+    else:
+        linked_tabs = []
+
+        if 'ordering' in CONFIG_FILE:
+            if 'ordering' in CONFIG_FILE:
+                for key in CONFIG_FILE['ordering'].keys():
+                    if CONFIG_FILE['ordering'][key] == schema_key:
+                        linked_tabs.append(key)
+
+
+        tab_config = SCHEMA_TEMPLATE.get_tabs_config()
+
+        for schema in tab_config.lookup('tabs'):
+            if schema_key == list(schema.keys())[0]:
+                tab_name = schema[schema_key]['display_name']
+
+                _update_tab(workbook, schema_key, tab_name, schema_version)
+
+                if linked_tabs:
+                    for tab in linked_tabs:
+                        linked_tab_name = tab_config.lookup('meta_data_properties')[schema_key][tab]['user_friendly']
+                        _update_tab(workbook, schema_key, linked_tab_name, schema_version)
+
+
+def _update_tab(workbook, schema_name, tab_name, schema_version):
+    current_tab = workbook[tab_name]
+
+    available_columns = []
+    last_index = 1
+    for col in current_tab.iter_cols(min_row=4, max_row=4):
+        for cell in col:
+            # print(cell.value)
+            last_index += 1
+
+            if cell.value is not None and schema_name in cell.value:
+                try:
+                    new_property = SCHEMA_TEMPLATE.lookup(cell.value)
+                    _update_user_properties(cell.value, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(cell.value + ".required"))
+                    available_columns.append(new_property)
+
+                except UnknownKeyException:
+
+                    try:
+                        new_property = SCHEMA_TEMPLATE.replaced_by_latest(cell.value)
+                        if new_property is not "":
+                            # print(new_property)
+                            cell.value = new_property
+                            _update_user_properties(new_property, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(new_property + ".required"))
+                            available_columns.append(new_property)
+
+                    except UnknownKeyException:
+                        current_tab.delete_cols(cell.col_idx, 1)
+                        last_index -=1
+                        available_columns.pop()
+
+
+
+    # TO DO: Dealing with new required properties - this code currently doesn't work as it adds dozens of duplicate properties!
+    #
+    # tab_config = SCHEMA_TEMPLATE.get_tabs_config()
+    #
+    # for schema in tab_config.lookup('tabs'):
+    #     if list(schema.keys())[0] == schema_name:
+    #         latest_columns = schema[schema_name]['columns']
+    #
+    #         for column in latest_columns:
+    #             if column not in available_columns:
+    #                 if SCHEMA_TEMPLATE.lookup(column + ".required"):
+    #                     print("Added column " + column + " to schema " + schema_name)
+    #                     current_tab.cell(row=4, column=last_index, value=column)
+    #                     _update_user_properties(column, last_index, current_tab)
+    #                     last_index +=1
+
+
+def _update_user_properties(col_name, col_index, current_tab, required):
+    if col_name.split(".")[-1] == "text":
+        uf = _get_value_for_column(col_name.replace('.text', ''), "user_friendly").upper()
+    else:
+        uf = _get_value_for_column(col_name, "user_friendly").upper()
+    if col_name.split(".")[-1] == "text":
+        desc = _get_value_for_column(col_name.replace('.text', ''), "description")
+        if desc == "":
+            desc = _get_value_for_column(col_name, "description")
+    else:
+        desc = _get_value_for_column(col_name, "description")
+    if col_name.split(".")[-1] == "text":
+        required = bool(_get_value_for_column(col_name.replace('.text', ''), "required"))
+    else:
+        required = bool(_get_value_for_column(col_name, "required"))
+    if col_name.split(".")[-1] == "text":
+        example_text = _get_value_for_column(col_name.replace('.text', ''), "example")
+        if example_text == "":
+            example_text = _get_value_for_column(col_name, "example")
+    else:
+        example_text = _get_value_for_column(col_name, "example")
+    if col_name.split(".")[-1] == "text":
+        guidelines = _get_value_for_column(col_name.replace('.text', ''), "guidelines")
+        if guidelines == "":
+            guidelines = _get_value_for_column(col_name, "guidelines")
+    else:
+        guidelines = _get_value_for_column(col_name, "guidelines")
+
+    if required:
+        uf = uf + " (Required)"
+
+    current_tab.cell(row=1, column=col_index, value=uf)
+    # set the description
+    current_tab.cell(row=2, column=col_index, value=desc)
+
+    # write example
+    if example_text:
+    # print("Example " + example_text)
+        current_tab.cell(row=3, column=col_index, value=guidelines + ' For example: ' + example_text)
+    else:
+    # print("Guideline " + guidelines)
+        current_tab.cell(row=3, column=col_index, value=guidelines)
+
+def _get_value_for_column(col_name, property):
+    try:
+        uf = str(SCHEMA_TEMPLATE.lookup(col_name + "." + property)) if SCHEMA_TEMPLATE.lookup(col_name + "." + property) else ""
+        return uf
+    except Exception:
+        print("No property " + property + " for " + col_name)
+        return ""
+
+
+
+def _migrate_process_schema(workbook, schema, schema_version):
+
+    process_tabs = []
+
+    if 'ordering' in CONFIG_FILE:
+        if 'ordering' in CONFIG_FILE:
+            for key in CONFIG_FILE['ordering'].keys():
+                if CONFIG_FILE['ordering'][key] == schema:
+                    process_tabs.append(key)
+
+    tab_config = SCHEMA_TEMPLATE.get_tabs_config()
+
+    for schema in tab_config.lookup('tabs'):
+        if list(schema.keys())[0] in process_tabs:
+            schema_name = list(schema.keys())[0]
+            tab_name = schema[list(schema.keys())[0]]['display_name']
+
+            _update_tab(workbook, 'process', tab_name, schema_version)
+
+
 if __name__ == '__main__':
 
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -403,6 +630,6 @@ if __name__ == '__main__':
         env = CONFIG_FILE['system']['environment']
     api_url = INGEST_API_URL.replace("{env}", env)
 
-    SCHEMA_TEMPLATE = SchemaTemplate(ingest_api_url=api_url)
+    SCHEMA_TEMPLATE = SchemaTemplate(ingest_api_url=api_url,migrations_url='https://schema.dev.data.humancellatlas.org/property_migrations')
 
     app.run(host='0.0.0.0', port=5000)

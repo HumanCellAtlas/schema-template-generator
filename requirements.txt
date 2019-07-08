@@ -10,3 +10,4 @@ XlsxWriter==0.9.8
 PyYAML==4.2b1
 configparser==3.5.0
 git+https://github.com/HumanCellAtlas/ingest-client#egg=hca-ingest
+openpyxl==2.6.2

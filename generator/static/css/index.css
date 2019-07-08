@@ -20,11 +20,11 @@ a.submission-id {
 
 .grid-container {
   display: grid;
-  grid-template-columns: auto auto auto;
+  grid-template-columns: auto auto auto auto;
   padding: 10px;
 }
 .grid-item {
   padding: 20px;
-  font-size: 30px;
+  font-size: 20px;
   text-align: center;
 }
