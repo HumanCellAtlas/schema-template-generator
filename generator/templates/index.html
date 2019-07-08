@@ -40,32 +40,31 @@
                     <button type="submit" class="btn btn-primary" id="selectSchemas">Select schemas</button>
                </form>
             </div>
+        </div>
+        <div class="upload-grid-container">
+            <!--Button to upload YAML file for editing-->
              <div class="grid-item">
                <form  action="upload" method="POST" enctype="multipart/form-data">
-                    <!--<div class="form-group">-->
-                       <!--<label for="yamlUpload" class="btn btn-info btn-file">Upload a YAML file-->
-                          <!--<input type="file" accept=".yaml,.yml" name="yamlfile" id="yamlUpload" style="display: none;">-->
-
-                       <!--</label>-->
-                    <!--</div>-->
                    <div class="custom-file">
                         <input type="file" accept=".yaml,.yml" name="yamlfile" class="custom-file-input" id="yamlUpload">
-                        <!--<label class="custom-file-label" for="yamlUpload">Choose YAML file</label>-->
                     </div>
-                    <button type="submit" class="btn btn-primary" id="uploadYaml">Upload YAML</button>
+                    <button type="submit" class="btn btn-primary" id="uploadYaml">Upload YAML to edit</button>
                </form>
             </div>
+            <!--Button to upload YAML file for immediate conversion to spreadsheet-->
+             <div class="grid-item">
+               <form  action="upload_yaml_to_xls" method="POST" enctype="multipart/form-data">
+                   <div class="custom-file">
+                        <input type="file" accept=".yaml,.yml" name="yamlfile" class="custom-file-input" id="yamlFile">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="uploadYamlToXls">YAML to spreadsheet</button>
+               </form>
+            </div>
+            <!--Button to upload spreadsheet for migration-->
             <div class="grid-item">
                <form  action="upload_xls" method="POST" enctype="multipart/form-data">
-                    <!--<div class="form-group">-->
-                       <!--<label for="yamlUpload" class="btn btn-info btn-file">Upload a YAML file-->
-                          <!--<input type="file" accept=".yaml,.yml" name="yamlfile" id="yamlUpload" style="display: none;">-->
-
-                       <!--</label>-->
-                    <!--</div>-->
                    <div class="custom-file">
                         <input type="file" accept=".xlsx,.xls" name="xlsfile" class="custom-file-input" id="spreadsheetUpload">
-                        <!--<label class="custom-file-label" for="yamlUpload">Choose YAML file</label>-->
                     </div>
                     <button type="submit" class="btn btn-primary" id="uploadSpreadsheet">Migrate spreadsheet</button>
                </form>
