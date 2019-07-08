@@ -36,3 +36,15 @@ docker run -p 5000:5000 -e INGEST_API=http://localhost:8080 generator-demo:lates
 
 The application will be available at http://localhost:5000
 
+
+# Known bugs and unexpected behaviours
+
+The following is a list of known bugs and unexpected behaviours of the spreadsheet template generator.
+
+1. **Numeric fields and their units aren't pre-selected together:** Fields currently don't depend on each other so without an additional layer of hard-coding, it would be difficult to ensure that numeric fields and their units are pre-selected together. Review these selections carefully in the schema selection page.
+
+1. **The field ordering in my YAML file changed after I uploaded it to add additional schemas:** This is a known issue with the field selection UI. To preserve the ordering of the fields in your YAML, edit it manually and generate the spreadsheet using the fourth option on the UI landing page. For more information, see Use case #4 in [the HowTo doc](HowTo.md).
+
+1. **New required fields are not added as part of a spreadsheet migration:** This was a deliberate design choice. For more information, see Use case #5 in [the HowTo doc](HowTo.md).
+
+
