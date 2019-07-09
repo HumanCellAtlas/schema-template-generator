@@ -673,7 +673,11 @@ if __name__ == '__main__':
     env = ''
     if 'system' in CONFIG_FILE and 'environment' in CONFIG_FILE['system']:
         env = CONFIG_FILE['system']['environment']
-    api_url = INGEST_API_URL.replace("{env}", env)
+
+    if env == 'prod':
+        api_url = INGEST_API_URL.replace("{env}.", '')
+    else:
+        api_url = INGEST_API_URL.replace("{env}", env)
 
     SCHEMA_TEMPLATE = SchemaTemplate(ingest_api_url=api_url,migrations_url='https://schema.dev.data.humancellatlas.org/property_migrations')
 
