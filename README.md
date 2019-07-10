@@ -48,6 +48,6 @@ The following is a list of known bugs and unexpected behaviours of the spreadshe
 
 1. **New required fields are not added as part of a spreadsheet migration:** This was a deliberate design choice. For more information, see Use case #5 in [the HowTo doc](HowTo.md).
 
-1. **Child tabs are not renamed as part of a spreadsheet migration:** Child tabs such as "Contacts" or "Publications" are not renamed in migrations if they did not already conform to the new format of "Parent name - Child name".
+1. **Tabs are not renamed as part of a spreadsheet migration:** Renaming of spreadsheet tabs isn't picked up during a migration. This includes child tabs such as "Contacts" or "Publications" - check them if they did not already conform to the new format of "Parent name - Child name"!
 
 
