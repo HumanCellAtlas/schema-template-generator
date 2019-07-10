@@ -50,4 +50,5 @@ The following is a list of known bugs and unexpected behaviours of the spreadshe
 
 1. **Tabs are not renamed as part of a spreadsheet migration:** Renaming of spreadsheet tabs isn't picked up during a migration. This includes child tabs such as "Contacts" or "Publications" - check them if they did not already conform to the new format of "Parent name - Child name"!
 
+1. **Migration code inelegance:** Due to the way the spreadsheet migration is implemented, a section of the ingest-client spreadsheet generator code had to be replicated in the template generator. This has the potential to lead to discrepancies between the two implementations. It may be worth re-implementing the migration to first build a full spreadsheet for the latest schemas from scratch, then copy across the values from the old spreadsheet column by column using migration lookups.
 

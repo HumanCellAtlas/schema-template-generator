@@ -564,7 +564,7 @@ def _update_tab(workbook, schema_name, tab_name, schema_version):
 
 
 
-
+# WARNING: This code duplicates a large section of the ingest-client spreadsheet builder. Updates to the relevant spreadsheet builder code should be mimicked here!
 def _update_user_properties(col_name, col_index, current_tab, required, tab_schema):
     if col_name.split(".")[-1] == "text":
         uf = _get_value_for_column(col_name.replace('.text', ''), "user_friendly").upper()
@@ -600,7 +600,7 @@ def _update_user_properties(col_name, col_index, current_tab, required, tab_sche
             and SCHEMA_TEMPLATE.lookup(wrapper)['multivalue'] == False:
         uf = (SCHEMA_TEMPLATE.lookup(wrapper)['user_friendly'] + " - " + uf).upper()
 
-    if "BIOMATERIAL" in uf:
+    if "BIOMATERIAL " in uf:
         schema_name = col_name.split(".")[0]
 
         for schema in SCHEMA_TEMPLATE.get_tabs_config().lookup('tabs'):
@@ -611,7 +611,7 @@ def _update_user_properties(col_name, col_index, current_tab, required, tab_sche
         if tab_schema != schema_name:
             uf = "INPUT " + uf
 
-    if "PROTOCOL" in uf:
+    if "PROTOCOL " in uf:
         schema_name = col_name.split(".")[0]
 
         for schema in SCHEMA_TEMPLATE.get_tabs_config().lookup('tabs'):
