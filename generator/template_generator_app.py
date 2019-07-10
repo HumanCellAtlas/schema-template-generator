@@ -538,55 +538,34 @@ def _migrate_schema(workbook, schema_url):
 def _update_tab(workbook, schema_name, tab_name, schema_version):
     current_tab = workbook[tab_name]
 
-    available_columns = []
     last_index = 1
     for col in current_tab.iter_cols(min_row=4, max_row=4):
         for cell in col:
-            # print(cell.value)
             last_index += 1
 
-            if cell.value is not None and schema_name in cell.value:
+            if cell.value is not None and (schema_name in cell.value or (schema_name not in cell.value and schema_name != 'process')):
                 try:
                     new_property = SCHEMA_TEMPLATE.lookup(cell.value)
-                    _update_user_properties(cell.value, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(cell.value + ".required"))
-                    available_columns.append(new_property)
+                    _update_user_properties(cell.value, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(cell.value + ".required"), schema_name)
 
                 except UnknownKeyException:
 
                     try:
                         new_property = SCHEMA_TEMPLATE.replaced_by_latest(cell.value)
                         if new_property is not "":
-                            # print(new_property)
                             cell.value = new_property
-                            _update_user_properties(new_property, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(new_property + ".required"))
-                            available_columns.append(new_property)
+                            _update_user_properties(new_property, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(new_property + ".required"), schema_name)
 
                     except UnknownKeyException:
                         if SCHEMA_TEMPLATE._lookup_migration_version(cell.value) is not None:
                             current_tab.delete_cols(cell.col_idx, 1)
                             last_index -=1
-                            available_columns.pop()
 
 
 
-    # TO DO: Dealing with new required properties - this code currently doesn't work as it adds dozens of duplicate properties!
-    #
-    # tab_config = SCHEMA_TEMPLATE.get_tabs_config()
-    #
-    # for schema in tab_config.lookup('tabs'):
-    #     if list(schema.keys())[0] == schema_name:
-    #         latest_columns = schema[schema_name]['columns']
-    #
-    #         for column in latest_columns:
-    #             if column not in available_columns:
-    #                 if SCHEMA_TEMPLATE.lookup(column + ".required"):
-    #                     print("Added column " + column + " to schema " + schema_name)
-    #                     current_tab.cell(row=4, column=last_index, value=column)
-    #                     _update_user_properties(column, last_index, current_tab)
-    #                     last_index +=1
 
 
-def _update_user_properties(col_name, col_index, current_tab, required):
+def _update_user_properties(col_name, col_index, current_tab, required, tab_schema):
     if col_name.split(".")[-1] == "text":
         uf = _get_value_for_column(col_name.replace('.text', ''), "user_friendly").upper()
     else:
@@ -613,6 +592,32 @@ def _update_user_properties(col_name, col_index, current_tab, required):
             guidelines = _get_value_for_column(col_name, "guidelines")
     else:
         guidelines = _get_value_for_column(col_name, "guidelines")
+
+    wrapper = ".".join(col_name.split(".")[:-1])
+    if SCHEMA_TEMPLATE.lookup(wrapper)['schema']['module'] \
+            and (SCHEMA_TEMPLATE.lookup(wrapper)['schema']['module'] == 'purchased_reagents'
+                 or SCHEMA_TEMPLATE.lookup(wrapper)['schema']['module'] == 'barcode') \
+            and SCHEMA_TEMPLATE.lookup(wrapper)['multivalue'] == False:
+        uf = (SCHEMA_TEMPLATE.lookup(wrapper)['user_friendly'] + " - " + uf).upper()
+
+    if "BIOMATERIAL" in uf:
+        schema_name = col_name.split(".")[0]
+
+        for schema in SCHEMA_TEMPLATE.get_tabs_config().lookup('tabs'):
+            if schema_name == list(schema.keys())[0]:
+                schema_uf = schema[schema_name]['display_name']
+        uf = uf.replace("BIOMATERIAL", schema_uf.upper())
+
+        if tab_schema != schema_name:
+            uf = "INPUT " + uf
+
+    if "PROTOCOL" in uf:
+        schema_name = col_name.split(".")[0]
+
+        for schema in SCHEMA_TEMPLATE.get_tabs_config().lookup('tabs'):
+            if schema_name == list(schema.keys())[0]:
+                schema_uf = schema[schema_name]['display_name']
+        uf = uf.replace("PROTOCOL", schema_uf.upper())
 
     if required:
         uf = uf + " (Required)"
