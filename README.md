@@ -51,18 +51,18 @@ The application will be available at <http://localhost:5000>
 
 ### `generator` directory
 
-- [config.ini][config.ini] - some basic config such as tab ordering for the spreadsheet and default linking behaviour
-- [template_generator_app.py](template_generator_app.py) - the main Python app that drives the generator
+- [config.ini][generator/config.ini] - some basic config such as tab ordering for the spreadsheet and default linking behaviour
+- [template_generator_app.py](generator/template_generator_app.py) - the main Python app that drives the generator
 
 #### `templates` directory
 
 Contains the html templates for the generator UI
 
-- [base.html](.html) - Header and footer for the entire UI
-- [index.html](.html) - Core element of the landing page, imports base
-- [schema_properties.html](.html) - Wrapper for a set of schema properties
-- [schema_selector.html](.html) - Selector page for pre-selecting schemas and modules
-- [schemas.html](.html) - Full schema selection page, imports base and schema_properties
+- [base.html](generator/templates/base.html) - Header and footer for the entire UI
+- [index.html](generator/templates/index.html) - Core element of the landing page, imports base
+- [schema_properties.html](generator/templates/schema_properties.html) - Wrapper for a set of schema properties
+- [schema_selector.html](generator/templates/schema_selector.html) - Selector page for pre-selecting schemas and modules
+- [schemas.html](generator/templates/schemas.html) - Full schema selection page, imports base and schema_properties
 
 
 #### `static` directory
