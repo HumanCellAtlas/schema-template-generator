@@ -35,8 +35,42 @@ then run the docker container. You will need to provide the URL to the [ingestio
 docker run -p 5000:5000 -e INGEST_API=http://localhost:8080 generator-demo:latest
 ```
 
-The application will be available at http://localhost:5000
+The application will be available at <http://localhost:5000>
 
+
+# Repo set-up
+
+## Directories
+
+### Root directory
+
+- [README.md](README.md) 
+- [HowTo.md](HowTo.md) - describes common use cases
+- [requirements.txt](requirements.txt) - Python install requirements
+- [Dockerfile][Dockerfile] - Docker build config
+
+### `generator` directory
+
+- [config.ini][config.ini] - some basic config such as tab ordering for the spreadsheet and default linking behaviour
+- [template_generator_app.py](template_generator_app.py) - the main Python app that drives the generator
+
+#### `templates` directory
+
+Contains the html templates for the generator UI
+
+- [base.html](.html) - Header and footer for the entire UI
+- [index.html](.html) - Core element of the landing page, imports base
+- [schema_properties.html](.html) - Wrapper for a set of schema properties
+- [schema_selector.html](.html) - Selector page for pre-selecting schemas and modules
+- [schemas.html](.html) - Full schema selection page, imports base and schema_properties
+
+
+#### `static` directory
+
+Includes css, images and js (javascript) directories and their contents
+
+- CSS - a few customised elements including some imports from Bootstrap 4 that were needed even though Bootstrap 4 isn't currently compatible with the UI overall
+- JS - mostly boilerplate plus a few customised elements
 
 # Known bugs and unexpected behaviours
 
