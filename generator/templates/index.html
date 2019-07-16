@@ -11,19 +11,20 @@
     <div class="starter-template">
     <div class="starter-template">
         <h1>Spreadsheet Template Generator</h1>
-        <p class="lead">Upload a YAML file or import all schemas</p>
+        <p class="lead">Import, upload, generate and migrate YAML files and spreadsheets</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
                     <div class="alert {{category}}">
-                       {{ message }}
+                        <b>{{ message }}</b>
                     </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
 
         <div class="grid-container">
+            <!--Button to load full list of all schemas -->
             <div class="grid-item">
                <form  action="load_all" method="GET" enctype="multipart/form-data">
                     <div class="form-group">
@@ -32,6 +33,7 @@
                     <button type="submit" class="btn btn-primary" id="allSchemas">All schemas</button>
                </form>
             </div>
+            <!--Button to preselect some schemas before loading full list -->
              <div class="grid-item">
                <form  action="load_select" method="GET" enctype="multipart/form-data">
                     <div class="form-group">
