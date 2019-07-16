@@ -47,11 +47,11 @@ The application will be available at <http://localhost:5000>
 - [README.md](README.md) 
 - [HowTo.md](HowTo.md) - describes common use cases
 - [requirements.txt](requirements.txt) - Python install requirements
-- [Dockerfile][Dockerfile] - Docker build config
+- [Dockerfile](Dockerfile) - Docker build config
 
 ### `generator` directory
 
-- [config.ini][generator/config.ini] - some basic config such as tab ordering for the spreadsheet and default linking behaviour
+- [config.ini](generator/config.ini) - some basic config such as tab ordering for the spreadsheet and default linking behaviour
 - [template_generator_app.py](generator/template_generator_app.py) - the main Python app that drives the generator
 
 #### `templates` directory
