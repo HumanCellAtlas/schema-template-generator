@@ -1,18 +1,17 @@
 #!/usr/bin/env python
-import sys
-
+import configparser
+import datetime
+import logging
 import os
+import sys
 import tempfile
 
 import yaml
-from flask import Flask, Markup, flash, request, render_template, redirect, url_for, make_response, send_file
-from flask_cors import CORS, cross_origin
-import logging
-import configparser
-import datetime
-from openpyxl import load_workbook
+from flask import Flask, flash, request, render_template, redirect, url_for, make_response
+from flask_cors import CORS
 from ingest.template.schema_template import SchemaTemplate, UnknownKeySchemaException
 from ingest.template.vanilla_spreadsheet_builder import VanillaSpreadsheetBuilder
+from openpyxl import load_workbook
 
 EXCLUDED_PROPERTIES = ["describedBy", "schema_version", "schema_type", "provenance"]
 
@@ -31,7 +30,6 @@ UPLOAD_FOLDER = 'tmp/yaml_file'
 
 DEFAULT_STATUS_LABEL = 'label-warning'
 
-
 HTML_HELPER = {
     'status_label': STATUS_LABEL,
     'default_status_label': DEFAULT_STATUS_LABEL
@@ -46,17 +44,18 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 logger = logging.getLogger(__name__)
 
-# dictionary of schema to tab names as tab names can be hard to get hold of from the schema template library, esp for sub-tabs
+# dictionary of schema to tab names as tab names can be hard to get hold of from the schema template library,
+# esp for sub-tabs
 DISPLAY_NAME_MAP = {}
 
 CONFIG_FILE = ''
 
 SCHEMA_TEMPLATE = {}
 
-#function that takes an uploaded YAML file and renders it in the context of all the latest schemas
+
+# function that takes an uploaded YAML file and renders it in the context of all the latest schemas
 @app.route('/upload', methods=['POST'])
 def upload_file():
-
     if 'yamlfile' not in request.files:
         flash('Warning! No file provided!')
         return redirect(url_for('index'))
@@ -66,7 +65,6 @@ def upload_file():
         flash('Warning! File name blank!')
         return redirect(url_for('index'))
     if file and _allowed_file(file.filename):
-
         content = yaml.load(file.stream.read(), Loader=yaml.FullLoader)
 
         # load all properties from latest schemas
@@ -81,10 +79,11 @@ def upload_file():
         # return the list of pre-selected properties to be rendered
         return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
 
-# function that takes a YAML file and converts it straight to a spreadsheet without going via the property selection page
+
+# function that takes a YAML file and converts it straight to a spreadsheet without going via the property selection
+# page
 @app.route('/upload_yaml_to_xls', methods=['POST'])
 def upload_generate():
-
     if 'yamlfile' not in request.files:
         flash('Warning! No file provided!')
         return redirect(url_for('index'))
@@ -94,7 +93,6 @@ def upload_generate():
         flash('Warning! File name blank!')
         return redirect(url_for('index'))
     if file and _allowed_file(file.filename):
-
         yaml_json = yaml.load(file.stream.read(), Loader=yaml.FullLoader)
         response = _generate_spreadsheet(yaml_json)
         return response
@@ -126,10 +124,10 @@ def load_full_schemas():
 
     return render_template('schemas.html', helper=HTML_HELPER, schemas=schema_properties)
 
+
 # function that loads schemas and modules (references) only for preselection
 @app.route('/load_select', methods=['GET'])
 def selectSchemas():
-
     # load the tab config and go through all the schemas
     tab_config = SCHEMA_TEMPLATE.tab_config
 
@@ -145,7 +143,7 @@ def selectSchemas():
         references = _extract_references(properties, schema_name, schema_title, schema_structure)
         unordered[references["name"]] = references
 
-    #make sure schemas and subschemas are presented in the order defined in the config file
+    # make sure schemas and subschemas are presented in the order defined in the config file
     orderedReferences = []
     if 'ordering' in CONFIG_FILE:
         for key in CONFIG_FILE['ordering'].keys():
@@ -156,15 +154,16 @@ def selectSchemas():
 
     return render_template('schema_selector.html', helper=HTML_HELPER, schemas=orderedReferences)
 
+
 # get the index page
 @app.route('/')
 def index():
     return render_template('index.html', helper=HTML_HELPER)
 
+
 # generate a spreadsheet or YAML file from the pre-selected schemas and properties
 @app.route('/generate', methods=['POST'])
 def generate_yaml():
-
     response = request.form
 
     # get the list of selected schemas and properties from the request
@@ -211,16 +210,16 @@ def generate_yaml():
                              filename=filename)
         return response
 
-    # to generate a spreadsheet, conver the yaml json format to spreadsheet
+    # to generate a spreadsheet, convert the yaml json format to spreadsheet
     elif request.form['submitButton'] == 'spreadsheet':
 
-            response = _generate_spreadsheet(yaml_json)
-            return response
+        response = _generate_spreadsheet(yaml_json)
+        return response
+
 
 # function to migrate an older spreadsheet (incl data) to the latest schema version
 @app.route('/upload_xls', methods=['POST'])
 def upload_spreadsheet():
-
     response = request.form
 
     if 'xlsfile' not in request.files:
@@ -232,7 +231,8 @@ def upload_spreadsheet():
         flash('Warning! File name blank!')
         return redirect(url_for('index'))
     if file and _allowed_file(file.filename):
-        # TO DO this is a hack to get past the 'No such file or directory' error but relies on directory being present - FIX!
+        # TO DO this is a hack to get past the 'No such file or directory' error but relies on directory being
+        # present - FIX!
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
         wb = load_workbook(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
 
@@ -242,7 +242,7 @@ def upload_spreadsheet():
         elif 'schemas' in wb.sheetnames:
             schemas = wb['schemas']
         else:
-           schemas = None
+            schemas = None
 
         latest_schemas = SCHEMA_TEMPLATE.get_latest_submittable_schema_urls(_get_ingest_api_url())
 
@@ -250,8 +250,10 @@ def upload_spreadsheet():
         tabs = wb.sheetnames
 
         # go through each schema in the tab config and if it's present in the old spreadsheet, migrate it
-        # this approach is slightly inefficient as it ends up migrating schemas that are already at their latest version but it means
-        # no schemas tab is required - in order to migrate only tabs that have actually changed, we'd need to know the schema version of
+        # this approach is slightly inefficient as it ends up migrating schemas that are already at their latest
+        # version but it means
+        # no schemas tab is required - in order to migrate only tabs that have actually changed, we'd need to know
+        # the schema version of
         # each tab in the old spreadsheet
         for schema in tab_config.lookup('tabs'):
             tab_name = schema[list(schema.keys())[0]]['display_name']
@@ -280,11 +282,13 @@ def upload_spreadsheet():
             os.remove(temp_filename)
             return response
 
-# convenience method to generate a spreadsheet from a pre-yaml data structure using the schema template library's spreadsheet generator
-def _generate_spreadsheet(yaml_json):
 
+# convenience method to generate a spreadsheet from a pre-yaml data structure using the schema template library's
+# spreadsheet generator
+def _generate_spreadsheet(yaml_json):
     # I know this looks like an unused property but it somehow doesn't work if you don't declare it here first
-    # slightly complicated set-up with named temp files to pass structures around and have a persistent file object that we can actually return to the browser
+    # slightly complicated set-up with named temp files to pass structures around and have a persistent file object
+    # that we can actually return to the browser
     temp_yaml_filename = ""
     with tempfile.NamedTemporaryFile('w', delete=False) as yaml_file:
         yaml.dump(yaml_json, yaml_file)
@@ -292,10 +296,11 @@ def _generate_spreadsheet(yaml_json):
 
     with tempfile.NamedTemporaryFile('w+b', delete=False) as ssheet_file:
         temp_filename = ssheet_file.name
+        print(CONFIG_FILE)
         spreadsheet_builder = VanillaSpreadsheetBuilder(temp_filename, True)
         # TO DO currently automatically building WITH schemas tab - this should be customisable
-        spreadsheet_builder.generate_spreadsheet(tabs_template=temp_yaml_filename,
-                                              schema_urls=SCHEMA_TEMPLATE.get_latest_submittable_schema_urls(_get_ingest_api_url()), include_schemas_tab=True)
+        spreadsheet_builder.generate_spreadsheet(schema_urls=SCHEMA_TEMPLATE.get_latest_submittable_schema_urls(
+            _get_ingest_api_url()), include_schemas_tab=True)
         spreadsheet_builder.save_spreadsheet()
 
         os.remove(temp_yaml_filename)
@@ -308,6 +313,7 @@ def _generate_spreadsheet(yaml_json):
                              filename=export_filename)
         os.remove(temp_filename)
         return response
+
 
 # convenience function that processes an uploaded YAML file to identify which properties should be preselected
 def _process_uploaded_file(file):
@@ -327,6 +333,7 @@ def _process_uploaded_file(file):
         selected_properties[schema_name] = props
 
     return selected_schemas, selected_properties
+
 
 # Convenience function that given a list of preselected schemas and properties,
 # marks the appropriate schemas and properties as to be selected in the full schemas list.
@@ -354,18 +361,21 @@ def _preselect_properties(schema_properties, selected_schemas, selected_referenc
                     for prop in sel_props:
                         # Required properties will be pre-selected anyway so don't need to be marked again
                         if prop in list(properties.keys()) and properties[prop] == "not required":
-                                schema["properties"][prop] = "pre-selected"
-                        # This clause was intended to deal with linking properties etc but also lets through deleted and updated properties in this schema
+                            schema["properties"][prop] = "pre-selected"
+                        # This clause was intended to deal with linking properties etc but also lets through deleted
+                        # and updated properties in this schema
                         # TO DO: implement migration lookup for this clause for properties that are in this schema
                         elif prop not in list(properties.keys()):
                             schema["properties"][prop] = "pre-selected"
     return schema_properties
+
 
 # helper function to load the config file
 def _loadConfig(file):
     config_file = configparser.ConfigParser(allow_no_value=True)
     config_file.read(file)
     return config_file
+
 
 # helper function to get the Ingest API URL
 def _get_ingest_api_url():
@@ -385,9 +395,10 @@ def _get_ingest_api_url():
 def _allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# helper function to convert properties as presented in the schema template library to a format readable by the generator UI
-def _process_schemas():
 
+# helper function to convert properties as presented in the schema template library to a format readable by the
+# generator UI
+def _process_schemas():
     tab_config = SCHEMA_TEMPLATE.tab_config
 
     unordered = {}
@@ -411,22 +422,23 @@ def _process_schemas():
             if len(p.split(".")) > 2:
                 parent = ".".join(p.split(".")[:-1])
 
-                # special case for modules with ontology imports where the field is required if the module is used, eg donor.timecourse.unit.text
+                # special case for modules with ontology imports where the field is required if the module is used,
+                # eg donor.timecourse.unit.text
                 if len(p.split(".")) == 4:
-                    if SCHEMA_TEMPLATE.lookup(parent+".required"):
+                    if SCHEMA_TEMPLATE.lookup(parent + ".required"):
                         parent = ".".join(parent.split(".")[:-1])
-                if SCHEMA_TEMPLATE.lookup(parent+".required"):
+                if SCHEMA_TEMPLATE.lookup(parent + ".required"):
                     if SCHEMA_TEMPLATE.lookup(p + ".required"):
                         property["properties"][p] = "required"
                     else:
                         property["properties"][p] = "not required"
                 else:
-                    property["properties"][p]="not required"
+                    property["properties"][p] = "not required"
             else:
-                if SCHEMA_TEMPLATE.lookup(p+".required"):
-                    property["properties"][p]="required"
+                if SCHEMA_TEMPLATE.lookup(p + ".required"):
+                    property["properties"][p] = "required"
                 else:
-                    property["properties"][p]="not required"
+                    property["properties"][p] = "not required"
 
         # create a separate process object for appending to other properties below
         if property["name"] == "process":
@@ -504,9 +516,9 @@ def _process_schemas():
 
     return all_properties
 
+
 # helper function to extract the $ref properties (core and module references) from a schema
 def _extract_references(properties, name, title, schema):
-
     # direct property = properties of the schema (incl wrapper properties for imports)
     direct_properties = []
     for property in properties:
@@ -521,14 +533,17 @@ def _extract_references(properties, name, title, schema):
 
     for dp in direct_properties:
         if dp not in EXCLUDED_PROPERTIES:
-            # if the property exists and has a 'value_type' field and 'value_type' is an object and the property isn't already on the list of references
-            if schema[dp] and schema[dp]['value_type'] and schema[dp]['value_type'] == 'object' and dp not in references.keys():
+            # if the property exists and has a 'value_type' field and 'value_type' is an object and the property
+            # isn't already on the list of references
+            if schema[dp] and schema[dp]['value_type'] and schema[dp][
+                'value_type'] == 'object' and dp not in references.keys():
                 if schema[dp]['required']:
                     references[dp] = "required"
                 else:
                     references[dp] = "not required"
     structure["references"] = references
     return structure
+
 
 # helper function to actually migrate the schema
 def _migrate_schema(workbook, schema_url):
@@ -543,7 +558,6 @@ def _migrate_schema(workbook, schema_url):
             for key in CONFIG_FILE['ordering'].keys():
                 if CONFIG_FILE['ordering'][key] == schema_key:
                     linked_tabs.append(key)
-
 
     tab_config = SCHEMA_TEMPLATE.tab_config
 
@@ -569,6 +583,7 @@ def _migrate_schema(workbook, schema_url):
 
                     _update_tab(workbook, schema_key, linked_tab_name, schema_version)
 
+
 # convenience function to update a given tab in the work book
 def _update_tab(workbook, schema_name, tab_name, schema_version):
     try:
@@ -580,34 +595,40 @@ def _update_tab(workbook, schema_name, tab_name, schema_version):
 
                 # if there is actually a programmatic name in the cell, process this column
                 if cell.value is not None:
-                    # try to look up the programmatic name in the schema template - if success, update the user friendly properties as we don't know if the
+                    # try to look up the programmatic name in the schema template - if success, update the user
+                    # friendly properties as we don't know if the
                     # minor or patch schema version might have changed
                     try:
                         new_property = SCHEMA_TEMPLATE.lookup(cell.value)
-                        _update_user_properties(cell.value, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(cell.value + ".required"), schema_name)
+                        _update_user_properties(cell.value, cell.col_idx, current_tab,
+                                                SCHEMA_TEMPLATE.lookup(cell.value + ".required"), schema_name)
 
                     # if the property from the spreadsheet isn't found in the lookup, try to migrate it
                     except UnknownKeySchemaException:
                         try:
                             new_property = SCHEMA_TEMPLATE.replaced_by_latest(cell.value)
-                            # if a new property exists for the cell value, set the cell value to the new property, then update the user friendly fields for the column
+                            # if a new property exists for the cell value, set the cell value to the new property,
+                            # then update the user friendly fields for the column
                             if new_property is not "":
                                 cell.value = new_property
-                                _update_user_properties(new_property, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(new_property + ".required"), schema_name)
+                                _update_user_properties(new_property, cell.col_idx, current_tab,
+                                                        SCHEMA_TEMPLATE.lookup(new_property + ".required"), schema_name)
 
-                        # if the migration lookup fails but there is a version at which this property was migrated, assume it was deleted and delete the column
+                        # if the migration lookup fails but there is a version at which this property was migrated,
+                        # assume it was deleted and delete the column
                         except UnknownKeySchemaException:
                             if SCHEMA_TEMPLATE._lookup_migration_version(cell.value) is not None:
                                 current_tab.delete_cols(cell.col_idx, 1)
 
     except Exception:
-       print("No tab found for key " + tab_name)
+        print("No tab found for key " + tab_name)
 
 
-# WARNING: This code duplicates a large section of the ingest-client spreadsheet builder. Updates to the relevant spreadsheet builder code should be mimicked here!
+# WARNING: This code duplicates a large section of the ingest-client spreadsheet builder. Updates to the relevant
+# spreadsheet builder code should be mimicked here!
 def _update_user_properties(col_name, col_index, current_tab, required, tab_schema):
-
-    # slightly complicated set-up to deal with the fact that any .text field from an ontology module should actually use the
+    # slightly complicated set-up to deal with the fact that any .text field from an ontology module should actually
+    # use the
     # user-friendly name/description/example/required status of its wrapper property
     if col_name.split(".")[-1] == "text":
         uf = _get_value_for_column(col_name.replace('.text', ''), "user_friendly").upper()
@@ -636,7 +657,8 @@ def _update_user_properties(col_name, col_index, current_tab, required, tab_sche
     else:
         guidelines = _get_value_for_column(col_name, "guidelines")
 
-    # alternative set-up to deal with correct labelling of barcode and kit imports (eg UMI barcode - foo vs cell barcode - foo)
+    # alternative set-up to deal with correct labelling of barcode and kit imports (eg UMI barcode - foo vs cell
+    # barcode - foo)
     wrapper = ".".join(col_name.split(".")[:-1])
     if SCHEMA_TEMPLATE.lookup(wrapper)['schema']['module'] \
             and (SCHEMA_TEMPLATE.lookup(wrapper)['schema']['module'] == 'purchased_reagents'
@@ -644,7 +666,8 @@ def _update_user_properties(col_name, col_index, current_tab, required, tab_sche
             and SCHEMA_TEMPLATE.lookup(wrapper)['multivalue'] == False:
         uf = (SCHEMA_TEMPLATE.lookup(wrapper)['user_friendly'] + " - " + uf).upper()
 
-    # core fields like ID and name for biomaterial and protocol should be referred to by the schema name, eg donor organism id rather than biomaterial id
+    # core fields like ID and name for biomaterial and protocol should be referred to by the schema name,
+    # eg donor organism id rather than biomaterial id
     if "BIOMATERIAL " in uf:
         schema_name = col_name.split(".")[0]
 
@@ -677,10 +700,13 @@ def _update_user_properties(col_name, col_index, current_tab, required, tab_sche
     else:
         current_tab.cell(row=3, column=col_index, value=guidelines)
 
-# convenience function to look up a property (user friendly name, description etc) for a column from the schema template library
+
+# convenience function to look up a property (user friendly name, description etc) for a column from the schema
+# template library
 def _get_value_for_column(col_name, property):
     try:
-        uf = str(SCHEMA_TEMPLATE.lookup(col_name + "." + property)) if SCHEMA_TEMPLATE.lookup(col_name + "." + property) else ""
+        uf = str(SCHEMA_TEMPLATE.lookup(col_name + "." + property)) if SCHEMA_TEMPLATE.lookup(
+            col_name + "." + property) else ""
         return uf
     except Exception:
         print("No property " + property + " for " + col_name)
@@ -696,7 +722,6 @@ if __name__ == '__main__':
     #     dir = dir.replace('/generator', '')
     # base_uri = dir + "/"
 
-
     CONFIG_FILE = _loadConfig('config.ini')
 
     env = ''
@@ -708,6 +733,7 @@ if __name__ == '__main__':
     else:
         api_url = INGEST_API_URL.replace("{env}", env)
 
-    SCHEMA_TEMPLATE = SchemaTemplate(ingest_api_url=api_url,migrations_url='https://schema.dev.data.humancellatlas.org/property_migrations')
+    SCHEMA_TEMPLATE = SchemaTemplate(ingest_api_url=api_url,
+                                     migrations_url='https://schema.dev.data.humancellatlas.org/property_migrations')
 
     app.run(host='0.0.0.0', port=5000)
