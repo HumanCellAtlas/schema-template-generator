@@ -11,7 +11,7 @@ import logging
 import configparser
 import datetime
 from openpyxl import load_workbook
-from ingest.template.schema_template import SchemaTemplate, UnknownKeySchemaException
+from ingest.template.schema_template import SchemaTemplate, UnknownKeyException
 from ingest.template.spreadsheet_builder import SpreadsheetBuilder
 
 EXCLUDED_PROPERTIES = ["describedBy", "schema_version", "schema_type", "provenance"]
@@ -131,7 +131,7 @@ def load_full_schemas():
 def selectSchemas():
 
     # load the tab config and go through all the schemas
-    tab_config = SCHEMA_TEMPLATE.tab_config
+    tab_config = SCHEMA_TEMPLATE.get_tabs_config()
 
     unordered = {}
     for schema in tab_config.lookup('tabs'):
@@ -244,9 +244,9 @@ def upload_spreadsheet():
         else:
            schemas = None
 
-        latest_schemas = SCHEMA_TEMPLATE.get_latest_submittable_schema_urls(_get_ingest_api_url())
+        latest_schemas = SCHEMA_TEMPLATE.get_schema_urls()
 
-        tab_config = SCHEMA_TEMPLATE.tab_config
+        tab_config = SCHEMA_TEMPLATE.get_tabs_config()
         tabs = wb.sheetnames
 
         # go through each schema in the tab config and if it's present in the old spreadsheet, migrate it
@@ -292,10 +292,10 @@ def _generate_spreadsheet(yaml_json):
 
     with tempfile.NamedTemporaryFile('w+b', delete=False) as ssheet_file:
         temp_filename = ssheet_file.name
-        spreadsheet_builder = SpreadsheetBuilder.create_initial_spreadsheet(temp_filename, True)
+        spreadsheet_builder = SpreadsheetBuilder(temp_filename, True)
         # TO DO currently automatically building WITH schemas tab - this should be customisable
         spreadsheet_builder.generate_workbook(tabs_template=temp_yaml_filename,
-                                              schema_urls=SCHEMA_TEMPLATE.get_latest_submittable_schema_urls(_get_ingest_api_url()), include_schemas_tab=True)
+                                              schema_urls=SCHEMA_TEMPLATE.get_schema_urls(), include_schemas_tab=True)
         spreadsheet_builder.save_workbook()
 
         os.remove(temp_yaml_filename)
@@ -367,20 +367,6 @@ def _loadConfig(file):
     config_file.read(file)
     return config_file
 
-# helper function to get the Ingest API URL
-def _get_ingest_api_url():
-    env = ''
-    if 'system' in CONFIG_FILE and 'environment' in CONFIG_FILE['system']:
-        env = CONFIG_FILE['system']['environment']
-
-    if env == 'prod':
-        api_url = INGEST_API_URL.replace("{env}.", '')
-    else:
-        api_url = INGEST_API_URL.replace("{env}", env)
-
-    return api_url
-
-
 # flask convenience function
 def _allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -388,7 +374,7 @@ def _allowed_file(filename):
 # helper function to convert properties as presented in the schema template library to a format readable by the generator UI
 def _process_schemas():
 
-    tab_config = SCHEMA_TEMPLATE.tab_config
+    tab_config = SCHEMA_TEMPLATE.get_tabs_config()
 
     unordered = {}
     all_properties = []
@@ -545,7 +531,7 @@ def _migrate_schema(workbook, schema_url):
                     linked_tabs.append(key)
 
 
-    tab_config = SCHEMA_TEMPLATE.tab_config
+    tab_config = SCHEMA_TEMPLATE.get_tabs_config()
 
     for schema in tab_config.lookup('tabs'):
         if schema_key == list(schema.keys())[0]:
@@ -576,7 +562,7 @@ def _update_tab(workbook, schema_name, tab_name, schema_version):
                     _update_user_properties(cell.value, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(cell.value + ".required"), schema_name)
 
                 # if the property from the spreadsheet isn't found in the lookup, try to migrate it
-                except UnknownKeySchemaException:
+                except UnknownKeyException:
                     try:
                         new_property = SCHEMA_TEMPLATE.replaced_by_latest(cell.value)
                         # if a new property exists for the cell value, set the cell value to the new property, then update the user friendly fields for the column
@@ -585,7 +571,7 @@ def _update_tab(workbook, schema_name, tab_name, schema_version):
                             _update_user_properties(new_property, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(new_property + ".required"), schema_name)
 
                     # if the migration lookup fails but there is a version at which this property was migrated, assume it was deleted and delete the column
-                    except UnknownKeySchemaException:
+                    except UnknownKeyException:
                         if SCHEMA_TEMPLATE._lookup_migration_version(cell.value) is not None:
                             current_tab.delete_cols(cell.col_idx, 1)
 
@@ -636,7 +622,7 @@ def _update_user_properties(col_name, col_index, current_tab, required, tab_sche
     if "BIOMATERIAL " in uf:
         schema_name = col_name.split(".")[0]
 
-        for schema in SCHEMA_TEMPLATE.tab_config.lookup('tabs'):
+        for schema in SCHEMA_TEMPLATE.get_tabs_config().lookup('tabs'):
             if schema_name == list(schema.keys())[0]:
                 schema_uf = schema[schema_name]['display_name']
         uf = uf.replace("BIOMATERIAL", schema_uf.upper())
@@ -647,7 +633,7 @@ def _update_user_properties(col_name, col_index, current_tab, required, tab_sche
     if "PROTOCOL " in uf:
         schema_name = col_name.split(".")[0]
 
-        for schema in SCHEMA_TEMPLATE.tab_config.lookup('tabs'):
+        for schema in SCHEMA_TEMPLATE.get_tabs_config().lookup('tabs'):
             if schema_name == list(schema.keys())[0]:
                 schema_uf = schema[schema_name]['display_name']
         uf = uf.replace("PROTOCOL", schema_uf.upper())
