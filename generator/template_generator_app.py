@@ -12,7 +12,7 @@ import configparser
 import datetime
 from openpyxl import load_workbook
 from ingest.template.schema_template import SchemaTemplate, UnknownKeySchemaException
-from ingest.template.spreadsheet_builder import SpreadsheetBuilder
+from ingest.template.vanilla_spreadsheet_builder import VanillaSpreadsheetBuilder
 
 EXCLUDED_PROPERTIES = ["describedBy", "schema_version", "schema_type", "provenance"]
 
@@ -292,11 +292,11 @@ def _generate_spreadsheet(yaml_json):
 
     with tempfile.NamedTemporaryFile('w+b', delete=False) as ssheet_file:
         temp_filename = ssheet_file.name
-        spreadsheet_builder = SpreadsheetBuilder.create_initial_spreadsheet(temp_filename, True)
+        spreadsheet_builder = VanillaSpreadsheetBuilder(temp_filename, True)
         # TO DO currently automatically building WITH schemas tab - this should be customisable
-        spreadsheet_builder.generate_workbook(tabs_template=temp_yaml_filename,
+        spreadsheet_builder.generate_spreadsheet(tabs_template=temp_yaml_filename,
                                               schema_urls=SCHEMA_TEMPLATE.get_latest_submittable_schema_urls(_get_ingest_api_url()), include_schemas_tab=True)
-        spreadsheet_builder.save_workbook()
+        spreadsheet_builder.save_spreadsheet()
 
         os.remove(temp_yaml_filename)
         now = datetime.datetime.now()
