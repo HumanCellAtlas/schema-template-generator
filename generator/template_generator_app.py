@@ -543,37 +543,52 @@ def _migrate_schema(workbook, schema_url):
             if linked_tabs:
                 for tab in linked_tabs:
                     linked_tab_name = tab_config.lookup('meta_data_properties')[schema_key][tab]['user_friendly']
+
+                    try:
+                        workbook[linked_tab_name]
+                    except:
+                        print("No tab found for key " + linked_tab_name)
+
+                        if len(tab_name + " - " + linked_tab_name) < 32:
+                            linked_tab_name = tab_name + " - " + linked_tab_name
+                        else:
+                            linked_tab_name = linked_tab_name
+
                     _update_tab(workbook, schema_key, linked_tab_name, schema_version)
 
 # convenience function to update a given tab in the work book
 def _update_tab(workbook, schema_name, tab_name, schema_version):
-    current_tab = workbook[tab_name]
 
-    # look only a programmatic names in row 4
-    for col in current_tab.iter_cols(min_row=4, max_row=4):
-        for cell in col:
+    try:
+        current_tab = workbook[tab_name]
 
-            # if there is actually a programmatic name in the cell, process this column
-            if cell.value is not None:
-                # try to look up the programmatic name in the schema template - if success, update the user friendly properties as we don't know if the
-                # minor or patch schema version might have changed
-                try:
-                    new_property = SCHEMA_TEMPLATE.lookup(cell.value)
-                    _update_user_properties(cell.value, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(cell.value + ".required"), schema_name)
+        # look only a programmatic names in row 4
+        for col in current_tab.iter_cols(min_row=4, max_row=4):
+            for cell in col:
 
-                # if the property from the spreadsheet isn't found in the lookup, try to migrate it
-                except UnknownKeyException:
+                # if there is actually a programmatic name in the cell, process this column
+                if cell.value is not None:
+                    # try to look up the programmatic name in the schema template - if success, update the user friendly properties as we don't know if the
+                    # minor or patch schema version might have changed
                     try:
-                        new_property = SCHEMA_TEMPLATE.replaced_by_latest(cell.value)
-                        # if a new property exists for the cell value, set the cell value to the new property, then update the user friendly fields for the column
-                        if new_property is not "":
-                            cell.value = new_property
-                            _update_user_properties(new_property, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(new_property + ".required"), schema_name)
+                        new_property = SCHEMA_TEMPLATE.lookup(cell.value)
+                        _update_user_properties(cell.value, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(cell.value + ".required"), schema_name)
 
-                    # if the migration lookup fails but there is a version at which this property was migrated, assume it was deleted and delete the column
+                    # if the property from the spreadsheet isn't found in the lookup, try to migrate it
                     except UnknownKeyException:
-                        if SCHEMA_TEMPLATE._lookup_migration_version(cell.value) is not None:
-                            current_tab.delete_cols(cell.col_idx, 1)
+                        try:
+                            new_property = SCHEMA_TEMPLATE.replaced_by_latest(cell.value)
+                            # if a new property exists for the cell value, set the cell value to the new property, then update the user friendly fields for the column
+                            if new_property is not "":
+                                cell.value = new_property
+                                _update_user_properties(new_property, cell.col_idx, current_tab, SCHEMA_TEMPLATE.lookup(new_property + ".required"), schema_name)
+
+                        # if the migration lookup fails but there is a version at which this property was migrated, assume it was deleted and delete the column
+                        except UnknownKeyException:
+                            if SCHEMA_TEMPLATE._lookup_migration_version(cell.value) is not None:
+                                current_tab.delete_cols(cell.col_idx, 1)
+    except Exception:
+       print("No tab found for key " + tab_name)
 
 
 
