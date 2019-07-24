@@ -9,5 +9,5 @@ requests==2.20.0
 XlsxWriter==0.9.8
 PyYAML
 configparser==3.5.0
-hca-ingest
+hca-ingest==0.6.7
 openpyxl==2.6.2
