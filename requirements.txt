@@ -9,5 +9,5 @@ requests==2.20.0
 XlsxWriter
 PyYAML
 configparser==3.5.0
-git+https://github.com/HumanCellAtlas/ingest-client.git@a092b8fcb361210d92f6edb1e23309332fc02c6b
+hca-ingest==0.6.7
 openpyxl==2.6.2
