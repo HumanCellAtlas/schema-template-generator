@@ -730,6 +730,6 @@ if __name__ == '__main__':
         api_url = INGEST_API_URL.replace("{env}", env)
 
     SCHEMA_TEMPLATE = SchemaTemplate(ingest_api_url=api_url,
-                                     migrations_url='https://schema.dev.data.humancellatlas.org/property_migrations')
+                                     migrations_url='https://schema.humancellatlas.org/property_migrations')
 
     app.run(host='0.0.0.0', port=5000)
