@@ -15,6 +15,7 @@ from ingest.template.schema_template import SchemaTemplate, UnknownKeySchemaExce
 from ingest.template.vanilla_spreadsheet_builder import VanillaSpreadsheetBuilder
 
 EXCLUDED_PROPERTIES = ["describedBy", "schema_version", "schema_type", "provenance"]
+EXCLUDED_SCHEMAS = []
 
 INGEST_API_URL = "http://api.ingest.{env}.archive.data.humancellatlas.org"
 
@@ -133,16 +134,20 @@ def load_full_schemas():
 def selectSchemas():
 
     # load the tab config and go through all the schemas
-    tab_config = SCHEMA_TEMPLATE.tab_config
+    tab_config = SCHEMA_TEMPLATE.tabs
 
     unordered = {}
-    for schema in tab_config.lookup('tabs'):
+    for schema in tab_config:
         schema_name = list(schema.keys())[0]
+
+        if schema_name in EXCLUDED_SCHEMAS:
+            continue
 
         properties = schema[schema_name]['columns']
         schema_title = schema[schema_name]['display_name']
+        app.logger.info(schema_name)
 
-        schema_structure = tab_config.lookup('meta_data_properties')[schema_name]
+        schema_structure = SCHEMA_TEMPLATE.lookup_property_attributes_in_metadata(schema_name)
 
         references = _extract_references(properties, schema_name, schema_title, schema_structure)
         unordered[references["name"]] = references
@@ -247,16 +252,16 @@ def upload_spreadsheet():
         else:
            schemas = None
 
-        latest_schemas = SCHEMA_TEMPLATE.get_schema_urls()
+        latest_schemas = SCHEMA_TEMPLATE._get_latest_submittable_schema_urls(api_url)
 
-        tab_config = SCHEMA_TEMPLATE.tab_config
+        tab_config = SCHEMA_TEMPLATE.tabs
         tabs = wb.sheetnames
 
         # go through each schema in the tab config and if it's present in the old spreadsheet, migrate it
         # this approach is slightly inefficient as it ends up migrating schemas that are already at their
         # latest version but it means no schemas tab is required - in order to migrate only tabs that have
         # actually changed, we'd need to know the schema version of each tab in the old spreadsheet
-        for schema in tab_config.lookup('tabs'):
+        for schema in tab_config:
             tab_name = schema[list(schema.keys())[0]]['display_name']
 
             if tab_name in tabs:
@@ -300,7 +305,8 @@ def _generate_spreadsheet(yaml_json):
         spreadsheet_builder = VanillaSpreadsheetBuilder(temp_filename, True)
         # TO DO currently automatically building WITH schemas tab - this should be customisable
         spreadsheet_builder.generate_spreadsheet(tabs_template=temp_yaml_filename,
-                                              schema_urls=SCHEMA_TEMPLATE.get_schema_urls(), include_schemas_tab=True)
+                                                 schema_urls=SCHEMA_TEMPLATE._get_latest_submittable_schema_urls(api_url),
+                                                 include_schemas_tab=True)
         spreadsheet_builder.save_spreadsheet()
 
         os.remove(temp_yaml_filename)
@@ -395,15 +401,17 @@ def _allowed_file(filename):
 # to a format readable by the generator UI
 def _process_schemas():
 
-    tab_config = SCHEMA_TEMPLATE.tab_config
+    tab_config = SCHEMA_TEMPLATE.tabs
 
     unordered = {}
     all_properties = []
     # go through the schemas from the tab config one by one
-    for schema in tab_config.lookup('tabs'):
+    for schema in tab_config:
         property = {}
 
         schema_name = list(schema.keys())[0]
+        if schema_name in EXCLUDED_SCHEMAS:
+            continue
 
         # set the schema title, name and selection status
         property["title"] = schema[schema_name]["display_name"]
@@ -421,20 +429,20 @@ def _process_schemas():
                 # special case for modules with ontology imports where the field is required if the module is used,
                 # eg donor.timecourse.unit.text
                 if len(p.split(".")) == 4:
-                    if SCHEMA_TEMPLATE.lookup(parent + ".required"):
+                    if SCHEMA_TEMPLATE.lookup_property_from_template(parent)["required"]:
                         parent = ".".join(parent.split(".")[:-1])
-                if SCHEMA_TEMPLATE.lookup(parent + ".required"):
-                    if SCHEMA_TEMPLATE.lookup(p + ".required"):
+                if SCHEMA_TEMPLATE.lookup_property_from_template(parent)["required"]:
+                    if SCHEMA_TEMPLATE.lookup_property_from_template(p)["required"]:
                         property["properties"][p] = "required"
                     else:
                         property["properties"][p] = "not required"
                 else:
-                    property["properties"][p]="not required"
+                    property["properties"][p] = "not required"
             else:
-                if SCHEMA_TEMPLATE.lookup(p + ".required"):
-                    property["properties"][p]="required"
+                if SCHEMA_TEMPLATE.lookup_property_from_template(p)["required"]:
+                    property["properties"][p] = "required"
                 else:
-                    property["properties"][p]="not required"
+                    property["properties"][p] = "not required"
 
         # create a separate process object for appending to other properties below
         if property["name"] == "process":
@@ -484,8 +492,7 @@ def _process_schemas():
                 parent = CONFIG_FILE['ordering'][key]
                 if parent in unordered.keys():
                     new_property = {}
-
-                    new_property["title"] = tab_config.lookup('meta_data_properties')[parent][key]['user_friendly']
+                    new_property["title"] = SCHEMA_TEMPLATE.lookup_property_from_template(parent)[key]['user_friendly']
 
                     # tabs can't have a name that's longer than 32 characteres
                     if len(DISPLAY_NAME_MAP[parent] + " - " + new_property["title"]) < 32:
@@ -512,6 +519,7 @@ def _process_schemas():
 
     return all_properties
 
+
 # helper function to extract the $ref properties (core and module references) from a schema
 def _extract_references(properties, name, title, schema):
 
@@ -531,6 +539,7 @@ def _extract_references(properties, name, title, schema):
         if dp not in EXCLUDED_PROPERTIES:
             # if the property exists and has a 'value_type' field and 'value_type' is an object and
             # the property isn't already on the list of references
+            app.logger.info("direct property is: " + dp)
             if schema[dp] and schema[dp]['value_type'] \
                     and schema[dp]['value_type'] == 'object' \
                     and dp not in references.keys():
@@ -556,7 +565,7 @@ def _migrate_schema(workbook, schema_url):
                     linked_tabs.append(key)
 
 
-    tab_config = SCHEMA_TEMPLATE.tab_config
+    tab_config = SCHEMA_TEMPLATE.tabs
 
     for schema in tab_config.lookup('tabs'):
         if schema_key == list(schema.keys())[0]:
@@ -580,6 +589,7 @@ def _migrate_schema(workbook, schema_url):
 
                     _update_tab(workbook, schema_key, linked_tab_name, schema_version)
 
+
 # convenience function to update a given tab in the work book
 def _update_tab(workbook, schema_name, tab_name, schema_version):
     try:
@@ -595,26 +605,30 @@ def _update_tab(workbook, schema_name, tab_name, schema_version):
                     # update the user friendly properties as we don't know if the minor or patch
                     # schema version might have changed
                     try:
-                        new_property = SCHEMA_TEMPLATE.lookup(cell.value)
+                        new_property = SCHEMA_TEMPLATE.lookup_property_from_template(cell.value)
                         _update_user_properties(cell.value, cell.col_idx, current_tab,
-                                                SCHEMA_TEMPLATE.lookup(cell.value + ".required"), schema_name)
+                                                SCHEMA_TEMPLATE.lookup_property_from_template(cell.value)["required"],
+                                                schema_name)
 
                     # if the property from the spreadsheet isn't found in the lookup, try to migrate it
                     except UnknownKeySchemaException:
                         try:
-                            new_property = SCHEMA_TEMPLATE.replaced_by_latest(cell.value)
+                            new_property = SCHEMA_TEMPLATE.lookup_absolute_latest_key_migration(cell.value)
                             # if a new property exists for the cell value, set the cell value to the new property,
                             # then update the user friendly fields for the column
                             if new_property is not "":
                                 cell.value = new_property
                                 _update_user_properties(new_property, cell.col_idx, current_tab,
-                                                        SCHEMA_TEMPLATE.lookup(new_property + ".required"), schema_name)
+                                                        SCHEMA_TEMPLATE.lookup_property_from_template(new_property)["required"],
+                                                        schema_name)
 
                         # if the migration lookup fails but there is a version at which this property was migrated,
                         # assume it was deleted and delete the column
                         except UnknownKeySchemaException:
-                            if SCHEMA_TEMPLATE._lookup_migration_version(cell.value) is not None:
-                                current_tab.delete_cols(cell.col_idx, 1)
+                            print("property not found in migrations.")
+                            # Not sure how to fix this yet, the below method no longer exists
+                            # if SCHEMA_TEMPLATE._lookup_migration_version(cell.value) is not None:
+                            #     current_tab.delete_cols(cell.col_idx, 1)
 
     except Exception:
        print("No tab found for key " + tab_name)
@@ -720,6 +734,9 @@ if __name__ == '__main__':
 
     CONFIG_FILE = _loadConfig('config.ini')
 
+    if 'blacklist' in CONFIG_FILE and 'schema_list' in CONFIG_FILE['blacklist']:
+        EXCLUDED_SCHEMAS = CONFIG_FILE['blacklist']['schema_list'].split(',')
+
     env = ''
     if 'system' in CONFIG_FILE and 'environment' in CONFIG_FILE['system']:
         env = CONFIG_FILE['system']['environment']
@@ -732,4 +749,4 @@ if __name__ == '__main__':
     SCHEMA_TEMPLATE = SchemaTemplate(ingest_api_url=api_url,
                                      migrations_url='https://schema.humancellatlas.org/property_migrations')
 
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)
