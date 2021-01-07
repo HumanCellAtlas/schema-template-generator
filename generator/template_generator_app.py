@@ -16,7 +16,7 @@ from ingest.template.vanilla_spreadsheet_builder import VanillaSpreadsheetBuilde
 
 EXCLUDED_PROPERTIES = ["describedBy", "schema_version", "schema_type", "provenance"]
 
-INGEST_API_URL = "http://api.ingest.{env}.data.humancellatlas.org"
+INGEST_API_URL = "http://api.ingest.{env}.archive.data.humancellatlas.org"
 
 STATUS_LABEL = {
     'Valid': 'label-success',
