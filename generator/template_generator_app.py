@@ -731,7 +731,6 @@ if __name__ == '__main__':
     #     dir = dir.replace('/generator', '')
     # base_uri = dir + "/"
 
-
     CONFIG_FILE = _loadConfig('config.ini')
 
     if 'blacklist' in CONFIG_FILE and 'schema_list' in CONFIG_FILE['blacklist']:
