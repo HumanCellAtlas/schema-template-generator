@@ -1,4 +1,5 @@
-[![Docker Repository on Quay](https://quay.io/repository/humancellatlas/schema-template-generator/status "Docker Repository on Quay")](https://quay.io/repository/humancellatlas/schema-template-generator)
+
+### Please Note, as at 8 January, 2021, migration feature is broken, will be fixed if there is a need for it
 
 # HCA spreadsheet template generator
 
