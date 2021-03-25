@@ -459,9 +459,16 @@ def _process_schemas():
     # add default biomaterial linking columns
     if 'biomaterial_linking' in CONFIG_FILE:
         for key in CONFIG_FILE['biomaterial_linking'].keys():
-            if key in unordered.keys() and CONFIG_FILE['biomaterial_linking'][key] in unordered.keys():
-                linking_field = list(unordered[CONFIG_FILE['biomaterial_linking'][key]]['properties'].keys())[0]
-                unordered[key]['properties'][linking_field] = "not required"
+            if key in unordered.keys():
+                biomaterials = []
+                if "," in CONFIG_FILE['biomaterial_linking'][key]:
+                    biomaterials = CONFIG_FILE['biomaterial_linking'][key].split(",")
+                else:
+                    biomaterials.append(CONFIG_FILE['biomaterial_linking'][key])
+                for biomaterial in biomaterials:
+                    if biomaterial in unordered.keys():
+                        linking_field = list(unordered[biomaterial]['properties'].keys())[0]
+                        unordered[key]['properties'][linking_field] = "not required"
 
     # add default protocol linking columns
     if 'protocol_linking' in CONFIG_FILE:
